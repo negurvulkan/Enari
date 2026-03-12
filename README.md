@@ -1,82 +1,100 @@
 # WorldMesh Worldbuilder CMS
 
-Dateibasiertes Markdown-CMS fuer Worldbuilding, Wissensarchive und strukturierte Inhalte.
+**WorldMesh** ist ein dateibasiertes Markdown-CMS für Worldbuilding, Wissensarchive und strukturierte Wissenssysteme.
 
-Dieses Repository ist als oeffentlich nutzbares CMS-Repo gedacht. Es enthaelt den CMS-Code, Themes, Konfiguration als Vorlage, Scripts, Dokumentation und einen kleinen zweisprachigen Demo-Datensatz. Produktiver oder privater Lore-Content ist bewusst nicht Teil des oeffentlichen Standards.
+Es kombiniert einfache Markdown-Autorenschaft mit strukturierten Datentypen, Relationen und graphbasierten Verknüpfungen. Inhalte bleiben als normale Dateien im Repository, während das CMS Navigation, Rendering, Relationen und Visualisierung übernimmt.
 
-## Was dieses Repo enthaelt
+Dieses Repository enthält die vollständige CMS-Runtime, Konfigurationsvorlagen, Themes, Scripts, Dokumentation sowie einen kleinen Demo-Datensatz.
 
-- CMS-Runtime und Admin-Oberflaeche
-- Schema, Themes und Type-Templates
-- Release-, Content- und Config-Checks
-- kleine Demo-Inhalte unter `content/de` und `content/en`
-- wenige Demo-Medien fuer Embeds, Medienbrowser und Upload-Flows
+---
 
-## Was dieses Repo bewusst nicht enthaelt
+# Features
 
-- produktiven oder privaten Worldbuilding-Content
-- grosse Medienarchive
-- Instanz-spezifische Runtime-Konfiguration
-- Zugangsdaten oder produktive Git-Credentials
+* Dateibasiertes Markdown-CMS
+* strukturierte Content-Typen und Relationen
+* Knowledge-Graph-Darstellung
+* mehrsprachige Content-Roots
+* Themes und Type-Templates
+* integrierte Validierungs- und Release-Checks
+* Demo-Datensatz zum Ausprobieren
 
-## Schnellstart
+Das System eignet sich besonders für:
 
-1. Lege deine lokale Runtime-Konfiguration an:
+* Worldbuilding
+* Wissensarchive
+* Enzyklopädien
+* Forschungs- und Projektarchive
+* strukturierte Dokumentationssysteme
+
+---
+
+# Repository-Inhalt
+
+Dieses Repository enthält:
+
+* CMS-Runtime und Admin-Oberfläche
+* Schema-Definitionen für strukturierte Inhalte
+* Themes und Type-Templates
+* Validierungs- und Release-Scripts
+* einen kleinen zweisprachigen Demo-Datensatz
+* einige Demo-Medien zur Illustration von Embeds und Medienseiten
+
+Der enthaltene Demo-Datensatz dient ausschließlich als Beispiel für Struktur, Typen, Relationen und Mehrsprachigkeit.
+
+---
+
+# Schnellstart
+
+### 1. Runtime-Konfiguration anlegen
 
 ```powershell
 Copy-Item site.config.sample.php site.config.php
 ```
 
-2. Pruefe die Config:
+### 2. Konfiguration prüfen
 
 ```bash
 php scripts/validate-config.php
 ```
 
-3. Starte den lokalen Server:
+### 3. Lokalen Server starten
 
 ```bash
 php -S 127.0.0.1:8000 router.php
 ```
 
-Danach ist die Default-Locale unter [http://127.0.0.1:8000/de/](http://127.0.0.1:8000/de/) erreichbar.
+Danach ist die Default-Locale unter
 
-## Demo-Standard
-
-Nach dem Kopieren der Sample-Config startet das Repo mit einem kleinen oeffentlichen Demo-Bestand:
-
-- `content/de/01_Demo-Archiv/`
-- `content/en/01_Demo-Archive/`
-- typisierte Markdown-Beispiele
-- Relationen und Graph-Daten
-- i18n-Beispiele mit `translation_key`
-- einige kleine SVG-Demo-Medien
-
-Die Service-Seiten unter `cms/pages/` bleiben bewusst generisch und koennen pro Instanz ersetzt oder erweitert werden.
-
-## Lokaler Content-Bestand
-
-Wenn du das CMS mit eigenem, nicht oeffentlichem Bestand betreibst, definierst du den Ort deiner Inhalte allein ueber `site.config.php`. Dort konfigurierst du die lokalen Content-Roots, Homepages und Instanz-Einstellungen passend zu deinem Arbeitsstand.
-
-Weitere Hinweise fuer den Public-vs-Private-Workflow und einen spaeteren History-Cleanup stehen in [docs/public-repo-workflow.md](docs/public-repo-workflow.md).
-
-## Wichtige Checks
-
-```bash
-php scripts/validate-config.php
-php scripts/validate-content.php
-php scripts/smoke-test.php
-php scripts/release-check.php --strict
+```
+http://127.0.0.1:8000/de/
 ```
 
-Der kombinierte Release-Check prueft:
+erreichbar.
 
-- Config-Struktur und referenzierte Pfade
-- PHP- und JS-Syntax
-- Content- und i18n-Konsistenz
-- interne Smoke-Tests fuer Routing, Themes und Graph-Seiten
+---
 
-## Projektstruktur
+# Demo-Datensatz
+
+Das Repository enthält einen kleinen Demo-Bestand, der zeigt:
+
+* strukturierte Markdown-Typen
+* Relationen zwischen Artikeln
+* Graph-Darstellungen
+* Mehrsprachigkeit über `translation_key`
+* Medien-Einbettungen
+
+Der Demo-Content liegt unter:
+
+```
+content/de/
+content/en/
+```
+
+Der Datensatz ist bewusst klein gehalten und dient nur als Beispiel für das CMS.
+
+---
+
+# Projektstruktur
 
 ```text
 index.php
@@ -90,18 +108,22 @@ scripts/
 themes/
 ```
 
-Wichtige Pfade:
+Wichtige Dateien und Ordner:
 
-- `site.config.sample.php`: versionierte Vorlage fuer neue Instanzen
-- `site.config.php`: lokale Runtime-Konfiguration, nicht versioniert
-- `content/`: zweisprachiger Demo-Bestand fuer das oeffentliche Repo
-- `cms/pages/`: Home- und Service-Seiten ausserhalb der normalen Ordnernavigation
-- `config/schema/`: Typen, Felder und Relationen
-- `themes/`: Themes mit Templates und Assets
+* `site.config.sample.php` – Vorlage für neue Instanzen
+* `site.config.php` – lokale Runtime-Konfiguration
+* `content/` – Demo-Content
+* `cms/pages/` – Service- und Systemseiten
+* `config/schema/` – Typ- und Relationsdefinitionen
+* `themes/` – Themes mit Templates und Assets
 
-## Mehrsprachigkeit
+---
 
-Mehrsprachigkeit wird ueber getrennte, konfigurierbare Content-Roots umgesetzt. Sprachvarianten werden nicht ueber Pfade, sondern ueber `translation_key` gruppiert.
+# Mehrsprachigkeit
+
+WorldMesh unterstützt mehrere Sprachen über getrennte Content-Roots.
+
+Sprachvarianten werden über `translation_key` miteinander verknüpft, nicht über identische Dateipfade.
 
 Beispiel:
 
@@ -119,26 +141,60 @@ Beispiel:
 ),
 ```
 
-Wichtige Regeln:
+Regeln:
 
-- Jede Sprache hat ihren eigenen Content-Root.
-- Ordner- und Dateinamen duerfen pro Sprache unterschiedlich sein.
-- Gleichartige Inhalte werden ueber `translation_key` verbunden, nicht ueber den Pfad.
-- Seiten ohne `translation_key` bleiben locale-lokal.
+* jede Sprache hat einen eigenen Content-Root
+* Ordner- und Dateinamen dürfen pro Sprache variieren
+* Inhalte werden über `translation_key` gruppiert
+* Seiten ohne `translation_key` bleiben sprachlokal
 
-## Weiterfuehrende Doku
+---
 
-- [CMS-Handbuch (DE)](docs/cms-handbook.de.md)
-- [CMS Handbook (EN)](docs/cms-handbook.en.md)
-- [Release Checks](docs/release-checks.md)
-- [Public Repo Workflow](docs/public-repo-workflow.md)
-- [AI Authoring Cookbook](docs/ai-authoring-cookbook.md)
-- [Markdown Extensions Reference](docs/markdown-extensions-reference.md)
-- [Knowledge System Architecture](docs/knowledge-system-architecture.md)
+# Validierungs- und Release-Checks
 
-## KI-Regeln
+WorldMesh enthält mehrere Prüfskripte für Entwicklung und Releases.
 
-Die verbindlichen KI-Autorierungsregeln leben im hierarchischen `AGENTS.md`-System.
+```bash
+php scripts/validate-config.php
+php scripts/validate-content.php
+php scripts/smoke-test.php
+php scripts/release-check.php --strict
+```
 
-- `AGENTS.md` im Repo-Root definiert globale Regeln
-- verschachtelte `AGENTS.md`-Dateien in `content/`, `cms/pages/`, `config/schema/`, `themes/` und `cms/type-templates/` regeln ihre Teilbereiche genauer
+Der kombinierte Release-Check prüft:
+
+* Konfigurationsstruktur
+* PHP- und JS-Syntax
+* Content-Konsistenz
+* Routing und Themes
+* Graph-Seiten
+
+---
+
+# Dokumentation
+
+Weitere Dokumentation befindet sich im `docs/`-Ordner:
+
+* CMS Handbuch (DE)
+* CMS Handbook (EN)
+* Release Checks
+* Markdown Extensions Reference
+* Knowledge System Architecture
+* AI Authoring Cookbook
+
+---
+
+# AI-Authoring
+
+Dieses Repository nutzt ein hierarchisches **AGENTS.md-System** für AI-unterstützte Entwicklung und Content-Authoring.
+
+* `AGENTS.md` im Root definiert globale Regeln
+* verschachtelte `AGENTS.md`-Dateien regeln ihre jeweiligen Teilbereiche
+
+Diese Dateien sind die primäre Instruktionsoberfläche für AI-Agenten.
+
+---
+
+# Lizenz
+
+Die Lizenzinformationen befinden sich in der `LICENSE`-Datei des Repositories.
