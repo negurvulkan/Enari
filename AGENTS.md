@@ -112,3 +112,21 @@ For exact Markdown extension syntax, use:
 - `content/AGENTS.md` for binding content-authoring rules
 - `docs/markdown-extensions-reference.md` for the exact syntax reference
 - `docs/ai-authoring-cookbook.md` for copy-paste recipes
+
+## 7. Development and Versioning Guidance
+
+Rules for code evolution, refactoring, version evaluation, change logging,
+and commit recommendations are defined in:
+
+- `docs/ai-development-guide.md`
+
+Agents must consult this file when:
+
+- implementing new features
+- modifying runtime behavior
+- performing refactors
+- proposing commits
+- evaluating version impact
+
+If a nested `AGENTS.md` defines more specific development rules for its subtree,
+those rules take precedence.
