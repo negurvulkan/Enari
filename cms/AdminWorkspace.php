@@ -326,6 +326,7 @@ final class AdminWorkspace
     private function normalizeConfig(array $adminConfig): array
     {
         $title = trim((string) ($adminConfig['title'] ?? 'CMS Workspace'));
+        $versionLabel = trim((string) ($adminConfig['versionLabel'] ?? 'v1.2'));
         $username = trim((string) ($adminConfig['username'] ?? 'admin'));
         $password = (string) ($adminConfig['password'] ?? '');
         $passwordHash = trim((string) ($adminConfig['passwordHash'] ?? ''));
@@ -338,6 +339,7 @@ final class AdminWorkspace
         return array(
             'enabled' => !array_key_exists('enabled', $adminConfig) || !empty($adminConfig['enabled']),
             'title' => $title !== '' ? $title : 'CMS Workspace',
+            'versionLabel' => $versionLabel !== '' ? $versionLabel : 'v1.2',
             'username' => $username !== '' ? $username : 'admin',
             'password' => $password,
             'passwordHash' => $passwordHash,
@@ -545,6 +547,7 @@ final class AdminWorkspace
         $bootstrap = $this->buildBootstrapPayload();
         $bootstrapJson = json_encode($bootstrap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $title = $this->escapeHtml((string) ($this->config['title'] ?? 'CMS Workspace'));
+        $versionLabel = $this->escapeHtml((string) ($this->config['versionLabel'] ?? 'v1.2'));
         $logoutForm = '';
         if ($this->hasConfiguredCredentials()) {
             $logoutForm = '<form method="post" action="' . $this->escapeAttribute($this->adminUrl('logout')) . '" class="admin-header__logout">'
@@ -566,7 +569,7 @@ final class AdminWorkspace
         echo '<div class="admin-live-region" data-admin-live role="status" aria-live="polite" aria-atomic="true"></div>';
         echo '<div class="admin-app" data-admin-app="true">';
         echo '<header class="admin-header">';
-        echo '<div class="admin-header__brand"><button type="button" class="admin-button admin-button--ghost admin-button--small admin-sidebar__toggle" data-admin-sidebar-toggle aria-controls="admin-sidebar" aria-expanded="false">Inhalte</button><div><p class="admin-header__eyebrow">Enari v1.1</p><h1 class="admin-header__title">' . $title . '</h1></div></div>';
+        echo '<div class="admin-header__brand"><button type="button" class="admin-button admin-button--ghost admin-button--small admin-sidebar__toggle" data-admin-sidebar-toggle aria-controls="admin-sidebar" aria-expanded="false">Inhalte</button><div><p class="admin-header__eyebrow">Enari ' . $versionLabel . '</p><h1 class="admin-header__title">' . $title . '</h1></div></div>';
         echo '<div class="admin-header__actions"><button type="button" class="admin-button admin-button--ghost" data-admin-refresh>Neu laden</button><button type="button" class="admin-button admin-button--ghost" data-admin-run-health>Health</button>' . $logoutForm . '</div>';
         echo '</header>';
         echo '<button type="button" class="admin-sidebar-overlay" data-admin-sidebar-overlay hidden aria-hidden="true"></button>';
