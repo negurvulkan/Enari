@@ -6,9 +6,15 @@ require_once __DIR__ . '/../cms/SimpleYamlParser.php';
 require_once __DIR__ . '/../cms/SchemaRegistry.php';
 require_once __DIR__ . '/../cms/ContentRepository.php';
 require_once __DIR__ . '/../cms/ReleaseSmokeTester.php';
+require_once __DIR__ . '/../cms/SiteConfigLoader.php';
 
 $basePath = dirname(__DIR__);
-$siteConfig = require $basePath . '/cms/site.config.php';
+try {
+    $siteConfig = SiteConfigLoader::load($basePath);
+} catch (RuntimeException $exception) {
+    fwrite(STDERR, SiteConfigLoader::formatReport(SiteConfigLoader::validate($basePath)) . PHP_EOL);
+    exit(1);
+}
 
 $tester = new ReleaseSmokeTester($basePath, is_array($siteConfig) ? $siteConfig : array());
 $report = $tester->run();

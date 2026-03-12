@@ -1,12 +1,12 @@
 # CMS-Handbuch
 
-Dieses Dokument ist die menschenlesbare Einfuehrung in das Enari Markdown CMS. Es richtet sich an Autorinnen und Autoren, Redakteurinnen und Redakteure, Maintainer und alle, die Inhalte, Strukturen oder Themes im System pflegen.
+Dieses Dokument ist die menschenlesbare Einfuehrung in das WorldMesh Worldbuilder CMS. Es richtet sich an Autorinnen und Autoren, Redakteurinnen und Redakteure, Maintainer und alle, die Inhalte, Strukturen oder Themes im System pflegen.
 
 Fuer KI-spezifische Regeln gibt es zusaetzlich das hierarchische `AGENTS.md`-System. Dieses Handbuch erklaert dagegen das CMS selbst, die wichtigsten Arbeitsbereiche und die ueblichen Arbeitsablaeufe.
 
 ## 1. Was dieses CMS ist
 
-Das Enari Markdown CMS ist ein dateibasiertes System fuer Wissensarchive, Worldbuilding und strukturierte Inhalte.
+Das WorldMesh Worldbuilder CMS ist ein dateibasiertes System fuer Wissensarchive, Worldbuilding und strukturierte Inhalte.
 
 Wichtige Eigenschaften:
 
@@ -74,12 +74,12 @@ Typisches Frontmatter:
 
 ```yaml
 ---
-title: Veyrathi
-translation_key: worldbuilding.languages.veyrathi
-type: language
+title: Lysari
+translation_key: demo.archive.species.lysari
+type: species
 relations:
-  - type: derived_from
-    target: Proto-Veyatish
+  - type: originates_from
+    target: Astraea
 ---
 ```
 
@@ -92,7 +92,7 @@ Wichtige Felder:
 
 ## 4. Mehrsprachigkeit richtig nutzen
 
-Mehrsprachigkeit ist in v1.0 locale-aware und basiert auf getrennten Content-Roots pro Sprache. Die Konfiguration liegt in [cms/site.config.php](/cms/site.config.php).
+Mehrsprachigkeit ist locale-aware und basiert auf getrennten Content-Roots pro Sprache. Fuer neue Instanzen liefert das Repo [cms/site.config.sample.php](/cms/site.config.sample.php); die lokale Runtime-Datei liegt danach unter `cms/site.config.php`.
 
 Beispiel:
 
@@ -121,8 +121,8 @@ Wichtige Regeln:
 Beispiel fuer lokalisierte Ordner:
 
 ```text
-content/de/01_Weltbau/01_Sprachen/00_Uebersicht.md
-content/en/01_Worldbuilding/01_Languages/00_Overview.md
+content/de/01_Demo-Archiv/00_Uebersicht.md
+content/en/01_Demo-Archive/00_Overview.md
 ```
 
 Wenn beide Seiten denselben Bereich beschreiben, brauchen sie denselben `translation_key`.
@@ -150,7 +150,7 @@ Typische Beispiele:
 Wichtig:
 
 - Eine Datei in `cms/pages/` allein macht die Seite noch nicht erreichbar.
-- Die Seite muss zusaetzlich in [cms/site.config.php](/cms/site.config.php) eingetragen werden.
+- Die Seite muss zusaetzlich in der lokalen `cms/site.config.php` eingetragen werden.
 - Slug, Position in Footer oder Sidebar und sprachspezifische Varianten kommen aus der Konfiguration, nicht aus der Ordnerstruktur.
 
 ## 6. Markdown-Dialekt und Erweiterungen
@@ -162,8 +162,8 @@ Das CMS unterstuetzt mehr als Standard-Markdown. Fuer die exakte Syntax gibt es 
 Interne Links sollten moeglichst relativ geschrieben werden:
 
 ```md
-[Sprachen](../01_Sprachen/00_Uebersicht.md)
-[Phonologie](./01_Phonologie.md)
+[Archivuebersicht](../00_Uebersicht.md)
+[Lysari](./01_Species_Lysari.md)
 ```
 
 Nicht empfohlen sind hart gebaute Runtime-URLs wie `/<locale>/?page=...`, wenn ein relativer Link ausreicht.
@@ -173,8 +173,8 @@ Nicht empfohlen sind hart gebaute Runtime-URLs wie `/<locale>/?page=...`, wenn e
 Unterstuetzt werden auch Wiki-Formen:
 
 ```md
-[[../01_Sprachen/00_Uebersicht.md|Sprachen]]
-![[../99_Medien/map.png|caption=Regionalkarte|large|right|popover]]
+[[../00_Uebersicht.md|Archivuebersicht]]
+![[../99_Medien/01_Illustrationen/demo-orbit-map.svg|caption=Orbitkarte|large|right|popover]]
 ```
 
 ### Icons
@@ -204,8 +204,8 @@ flowchart TD
 
 ```md
 ::graph
-title: Sprachfamilie
-from: veyrathi
+title: Demo-Archiv
+from: star-archive
 depth: 2
 layout: cose
 ::
@@ -302,6 +302,6 @@ php scripts/release-check.php --strict
 - [README.md](/README.md): Projektueberblick und Schnellstart
 - [docs/markdown-extensions-reference.md](/docs/markdown-extensions-reference.md): exakte Markdown-Syntax
 - [docs/release-checks.md](/docs/release-checks.md): Release- und Smoke-Checks
+- [docs/public-repo-workflow.md](/docs/public-repo-workflow.md): oeffentlicher Demo-Stand vs. lokaler Privatbestand
 - [docs/v1.0-upgrade.md](/docs/v1.0-upgrade.md): Einordnung der v1.0-Aenderungen
 - [docs/knowledge-system-architecture.md](/docs/knowledge-system-architecture.md): Architektur und Wissensmodell
-

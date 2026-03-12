@@ -1,6 +1,6 @@
 # AI Authoring Cookbook
 
-This document provides short recipes for common AI-assisted tasks in the Enari Markdown CMS. Rules live in `AGENTS.md`; this file shows practical patterns.
+This document provides short recipes for common AI-assisted tasks in the WorldMesh Worldbuilder CMS. Rules live in `AGENTS.md`; this file shows practical patterns.
 
 ## 1. Create a Bilingual Overview Page
 
@@ -10,24 +10,24 @@ German page:
 
 ```md
 ---
-translation_key: worldbuilding.languages.overview
+translation_key: demo.archive.overview
 ---
 
-# Sprachen
+# Demo-Archiv
 
-This overview introduces the language area and links to key subtopics.
+Diese Uebersicht erklaert den Bereich und verlinkt die wichtigsten Unterseiten.
 ```
 
 English page:
 
 ```md
 ---
-translation_key: worldbuilding.languages.overview
+translation_key: demo.archive.overview
 ---
 
-# Languages
+# Demo Archive
 
-This overview introduces the language area and links to key subtopics.
+This overview explains the area and links to the most important subpages.
 ```
 
 Checklist:
@@ -151,15 +151,15 @@ Checklist:
 
 Preferred flow:
 
-1. Inspect the target theme’s `templates/page.tpl` and `templates/components/`.
+1. Inspect the target theme's `templates/page.tpl` and `templates/components/`.
 2. Extend the smallest local component that owns the behavior.
 3. Only move code to `themes/shared/templates/` if it is already reused by multiple themes.
 
 Checklist:
 
-- preserve the theme’s existing shell structure
+- preserve the theme's existing shell structure
 - avoid turning a componentized theme back into a monolithic template
-- keep new CSS/JS/images inside that theme’s `assets/`
+- keep new CSS/JS/images inside that theme's `assets/`
 - run `php scripts/release-check.php --strict`
 
 ## 7. Add a New Theme
@@ -189,13 +189,13 @@ Checklist:
 Markdown link:
 
 ```md
-[Biology Overview](../03_Biologie/00_Uebersicht.md)
+[Demo Archive](../00_Uebersicht.md)
 ```
 
 Wiki-style link:
 
 ```md
-[[../03_Biologie/00_Uebersicht.md|Biology Overview]]
+[[../00_Uebersicht.md|Demo Archive]]
 ```
 
 Checklist:
@@ -209,13 +209,13 @@ Checklist:
 Standalone image:
 
 ```md
-![Regional map](../99_Medien/map.png)
+![Orbit map](../99_Medien/01_Illustrationen/demo-orbit-map.svg)
 ```
 
 Wiki-style image with options:
 
 ```md
-![[../99_Medien/map.png|caption=Regional map|large|right|popover]]
+![[../99_Medien/01_Illustrationen/demo-orbit-map.svg|caption=Orbit map|large|right|popover]]
 ```
 
 Checklist:
@@ -265,7 +265,7 @@ sequenceDiagram
     participant Author
     participant CMS
     Author->>CMS: Save page
-    CMS-->>Author: Render content
+    CMS-->>Author: Render preview
 ```
 ````
 
@@ -279,8 +279,8 @@ Checklist:
 
 ```md
 ::graph
-title: Veyrathi Network
-from: veyrathi
+title: Star Archive Network
+from: star-archive
 depth: 2
 layout: cose
 ::
@@ -305,7 +305,7 @@ nodes:
     type: note
 
 edges:
-  - source: enari
+  - source: star-archive
     target: custom-note
     label: Documents
 ::

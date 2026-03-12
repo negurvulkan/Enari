@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Demo observation grid</title>
+  <desc id="desc">Observation grid used as a small media browser demo asset.</desc>
+  <rect width="720" height="420" fill="#0a1320"/>
+  <g stroke="#20445e" stroke-width="1">
+    <path d="M 120 70 V 350"/>
+    <path d="M 200 70 V 350"/>
+    <path d="M 280 70 V 350"/>
+    <path d="M 360 70 V 350"/>
+    <path d="M 440 70 V 350"/>
+    <path d="M 520 70 V 350"/>
+    <path d="M 600 70 V 350"/>
+    <path d="M 120 70 H 600"/>
+    <path d="M 120 126 H 600"/>
+    <path d="M 120 182 H 600"/>
+    <path d="M 120 238 H 600"/>
+    <path d="M 120 294 H 600"/>
+    <path d="M 120 350 H 600"/>
+  </g>
+  <path d="M 160 294 L 248 238 L 330 256 L 404 162 L 488 182 L 562 126" fill="none" stroke="#79d4ff" stroke-width="5"/>
+  <g fill="#8fe3ff">
+    <circle cx="160" cy="294" r="7"/>
+    <circle cx="248" cy="238" r="7"/>
+    <circle cx="330" cy="256" r="7"/>
+    <circle cx="404" cy="162" r="7"/>
+    <circle cx="488" cy="182" r="7"/>
+    <circle cx="562" cy="126" r="7"/>
+  </g>
+  <text x="44" y="58" fill="#edf6fb" font-family="Segoe UI, Arial, sans-serif" font-size="28">Observation Grid</text>
+  <text x="44" y="92" fill="#9ab6c5" font-family="Segoe UI, Arial, sans-serif" font-size="18">Small SVG asset for cards, previews, and embeds</text>
+</svg>

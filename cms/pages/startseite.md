@@ -2,26 +2,27 @@
 translation_key: site.home
 ---
 
-# Enari Wissensarchiv
+# WorldMesh Demo-Archiv
 
-Willkommen im zentralen Archiv fuer die Weltbau-, Kultur- und Biologieunterlagen rund um die Enari.
+Willkommen im oeffentlichen Demo-Repository des WorldMesh Worldbuilder CMS.
 
 ## Einstieg
 
-Der Hauptbereich des Projekts liegt in [[weltbau|01 Weltbau]]. Dort findest du die strukturierten Themenbereiche, Uebersichten und Arbeitsdokumente.
+Der Hauptbereich dieses Repos liegt im [[demo.archive|Demo-Archiv]]. Dort findest du einen kleinen, neutralen Beispielbestand fuer Frontmatter, Typen, Relationen, Medien und i18n.
 
 ## Schnellzugriff
 
-- [[weltbau|Weltbau der Enari]]
+- [[demo.archive|Demo-Archiv]]
 - [[service.impressum|Impressum]]
 - [[service.datenschutz|Datenschutz]]
 
-## Hinweise zum CMS
+## Was dieses Repository zeigt
 
-- Die Ordnerstruktur bildet die Navigation.
-- `00_Uebersicht.md` dient weiterhin als Startseite eines Bereichs.
-- Relative Links und Medien-Embeds werden direkt aus den Markdown-Dateien aufgeloest.
+- lokalisierte Content-Baeume
+- schema-getriebene Typen und Relationen
+- relative Markdown-Links und Medien-Embeds
+- einen kleinen Admin- und Medienbrowser-freundlichen Demo-Datensatz
 
-## Pflege der Startseite
+## Private Inhalte
 
-Diese Startseite wird aus `cms/pages/startseite.md` gerendert. Den Quelldateipfad kannst du in `cms/site.config.php` unter `homePage.source` aendern.
+Produktiver oder privater Lore-Bestand ist bewusst nicht Teil dieses oeffentlichen Repos. Fuer lokale Inhalte nutze eine eigene `cms/site.config.php` und konfiguriere dort den Pfad zu deinem lokalen Content-Bestand.

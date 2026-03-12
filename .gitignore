@@ -11,6 +11,16 @@ cache/smarty/**
 
 # Logs
 *.log
+*.pyc
+__pycache__/
+
+# Local instance config
+cms/site.config.php
+
+# Local private content
+private-content/
+private-pages/
+private-backups/
 
 # OS / Editor
 .DS_Store

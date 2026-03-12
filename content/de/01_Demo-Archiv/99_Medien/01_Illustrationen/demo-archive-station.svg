@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Demo archive station</title>
+  <desc id="desc">Minimal schematic station for the public demo repository.</desc>
+  <rect width="720" height="420" fill="#0b1621"/>
+  <rect x="232" y="122" width="256" height="176" rx="28" fill="#12283a" stroke="#5fd2ff" stroke-width="4"/>
+  <rect x="300" y="86" width="120" height="248" rx="20" fill="#183a54" stroke="#8fe3ff" stroke-width="3"/>
+  <circle cx="360" cy="210" r="44" fill="#5fd2ff" opacity="0.2"/>
+  <circle cx="360" cy="210" r="18" fill="#8fe3ff"/>
+  <path d="M 180 210 H 540" stroke="#7fdcff" stroke-width="6"/>
+  <path d="M 360 70 V 350" stroke="#2b7ea5" stroke-width="4" stroke-dasharray="10 10"/>
+  <text x="44" y="58" fill="#edf6fb" font-family="Segoe UI, Arial, sans-serif" font-size="28">Archive Station</text>
+  <text x="44" y="92" fill="#9ab6c5" font-family="Segoe UI, Arial, sans-serif" font-size="18">Neutral illustration for the public WorldMesh demo</text>
+</svg>

@@ -11,8 +11,8 @@ Prefer relative links inside the content tree.
 Examples:
 
 ```md
-[Biology Overview](../03_Biologie/00_Uebersicht.md)
-[Phonology](./01_Phonologie.md)
+[Archive overview](../00_Uebersicht.md)
+[Lysari](./01_Species_Lysari.md)
 ```
 
 Rules:
@@ -26,21 +26,21 @@ Rules:
 Wiki-style links are supported:
 
 ```md
-[[../03_Biologie/00_Uebersicht.md|Biology Overview]]
+[[../00_Uebersicht.md|Archive overview]]
 ```
 
 Wiki-style media embeds are also supported:
 
 ```md
-![[../99_Medien/map.png|Regional map]]
-![[../99_Medien/file.pdf|Reference document]]
-![[../99_Medien/audio.mp3|Pronunciation sample]]
+![[../99_Medien/01_Illustrationen/demo-orbit-map.svg|Orbit map]]
+![[../99_Medien/reference-sheet.pdf|Reference document]]
+![[../99_Medien/audio-sample.mp3|Pronunciation sample]]
 ```
 
 Supported media option tokens can be combined with captions:
 
 ```md
-![[../99_Medien/map.png|caption=Regional map|large|right|popover]]
+![[../99_Medien/01_Illustrationen/demo-orbit-map.svg|caption=Orbit map|large|right|popover]]
 ![[../99_Medien/portrait.png|Portrait|small|left]]
 ![[../99_Medien/map.png|width=26rem|align=center]]
 ```
@@ -117,10 +117,10 @@ Example 3:
 ````md
 ```mermaid
 timeline
-    title Language History
-    Ancient : Proto-Veyatish
-    Classical : Old Veyata
-    Modern : Veyrathi
+    title Demo Archive Timeline
+    Discovery : Signal logged
+    Contact : First meeting
+    Archive : Record published
 ```
 ````
 
@@ -134,8 +134,8 @@ Minimal graph:
 
 ```md
 ::graph
-title: Veyrathi Network
-from: veyrathi
+title: Star Archive Network
+from: star-archive
 depth: 2
 layout: cose
 ::
@@ -145,8 +145,8 @@ Graph with filters and layout:
 
 ```md
 ::graph
-title: Enari Relations
-from: enari
+title: Demo Archive Relations
+from: star-archive
 depth: 2
 layout: breadthfirst
 filterTypes: species,institution
@@ -167,7 +167,7 @@ nodes:
     type: note
 
 edges:
-  - source: enari
+  - source: star-archive
     target: custom-note
     label: Documents
 ::

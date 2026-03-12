@@ -12,6 +12,7 @@ require __DIR__ . '/cms/MarkdownRenderer.php';
 require __DIR__ . '/cms/LayoutViewFactory.php';
 require __DIR__ . '/cms/SmartyRenderer.php';
 require __DIR__ . '/cms/SimpleYamlParser.php';
+require __DIR__ . '/cms/SiteConfigLoader.php';
 require __DIR__ . '/cms/SchemaRegistry.php';
 require __DIR__ . '/cms/EntryViewFactory.php';
 require __DIR__ . '/cms/TypePanelProviderInterface.php';
@@ -1235,20 +1236,45 @@ function build_theme_asset_urls(string $basePath, ContentRepository $repository,
     );
 }
 
-$siteConfigPath = __DIR__ . '/cms/site.config.php';
-$siteConfig = is_file($siteConfigPath) ? require $siteConfigPath : array();
-if (!is_array($siteConfig)) {
-    $siteConfig = array();
+/**
+ * Renders a setup error page when the local config is missing or invalid.
+ */
+function render_config_setup_page(string $message): void
+{
+    http_response_code(500);
+    header('Content-Type: text/html; charset=utf-8');
+
+    $safeMessage = nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8'));
+    echo '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
+    echo '<title>WorldMesh Setup Required</title>';
+    echo '<style>body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#08111a;color:#edf3f7}'
+        . '.setup{max-width:760px;margin:8vh auto;padding:2rem 1.5rem}.panel{border:1px solid rgba(255,255,255,.12);'
+        . 'border-radius:18px;background:rgba(15,25,38,.92);padding:1.5rem 1.6rem;box-shadow:0 18px 50px rgba(0,0,0,.35)}'
+        . '.eyebrow{margin:0 0 .55rem;color:#79d4ff;text-transform:uppercase;letter-spacing:.12em;font-size:.78rem}'
+        . 'h1{margin:.1rem 0 1rem;font-size:2rem}p{line-height:1.6;color:#c9d7df}'
+        . 'pre{white-space:pre-wrap;line-height:1.6;background:rgba(255,255,255,.04);padding:1rem;border-radius:12px;overflow:auto}'
+        . '</style></head><body><main class="setup"><section class="panel"><p class="eyebrow">Setup Required</p>'
+        . '<h1>Die lokale CMS-Konfiguration fehlt oder ist ungueltig.</h1>'
+        . '<p>Dieses Repository liefert bewusst nur die Vorlage <code>cms/site.config.sample.php</code>. '
+        . 'Lege daraus lokal eine <code>cms/site.config.php</code> an und konfiguriere dort die Pfade zu deinem lokalen Content-Bestand.</p>'
+        . '<pre>' . $safeMessage . '</pre></section></main></body></html>';
+    exit;
+}
+
+try {
+    $siteConfig = SiteConfigLoader::load(__DIR__);
+} catch (RuntimeException $exception) {
+    render_config_setup_page($exception->getMessage());
 }
 
 $siteDefaults = array(
-    'key' => 'enari-cms',
+    'key' => 'worldmesh-demo',
     'lang' => 'de',
-    'name' => 'Enari CMS',
-    'brandEyebrow' => 'Enari',
-    'brandTitle' => 'Markdown CMS',
-    'mastheadEyebrow' => 'Dateibasiertes CMS',
-    'defaultLead' => 'Dateibasiertes Wissensarchiv auf Basis deiner Markdown-Struktur.',
+    'name' => 'WorldMesh Worldbuilder CMS',
+    'brandEyebrow' => 'Markdown demo',
+    'brandTitle' => 'WorldMesh',
+    'mastheadEyebrow' => 'Public example repository',
+    'defaultLead' => 'Kleines Demo-Archiv fuer das dateibasierte WorldMesh Worldbuilder CMS.',
 );
 $uiDefaults = array(
     'tocTitle' => 'Auf dieser Seite',
@@ -1318,11 +1344,11 @@ $cytoscapeDefaults = array(
 );
 $adminDefaults = array(
     'enabled' => true,
-    'title' => 'Enari Admin Workspace',
+    'title' => 'WorldMesh Admin Workspace',
     'username' => getenv('CMS_ADMIN_USERNAME') !== false ? (string) getenv('CMS_ADMIN_USERNAME') : 'admin',
     'password' => getenv('CMS_ADMIN_PASSWORD') !== false ? (string) getenv('CMS_ADMIN_PASSWORD') : '',
     'passwordHash' => getenv('CMS_ADMIN_PASSWORD_HASH') !== false ? (string) getenv('CMS_ADMIN_PASSWORD_HASH') : '',
-    'sessionCookie' => 'enari-admin',
+    'sessionCookie' => 'worldmesh-admin',
     'trustedLocalFallback' => true,
     'historyRoot' => 'cache/admin-history',
     'previewTheme' => 'parchment',
@@ -1334,7 +1360,7 @@ $adminDefaults = array(
         'allowRemoteSetup' => true,
         'allowPull' => true,
         'allowPush' => true,
-        'authorName' => getenv('CMS_GIT_AUTHOR_NAME') !== false ? (string) getenv('CMS_GIT_AUTHOR_NAME') : 'Enari CMS',
+        'authorName' => getenv('CMS_GIT_AUTHOR_NAME') !== false ? (string) getenv('CMS_GIT_AUTHOR_NAME') : 'WorldMesh CMS',
         'authorEmail' => getenv('CMS_GIT_AUTHOR_EMAIL') !== false ? (string) getenv('CMS_GIT_AUTHOR_EMAIL') : 'cms@example.invalid',
         'mergeSessionRoot' => 'cache/admin-git-merge',
     ),
@@ -1395,11 +1421,11 @@ $cytoscapeSettings = array_replace($cytoscapeDefaults, is_array($integrationsCon
 
 $siteLanguage = trim((string) ($siteSettings['lang'] ?? ($activeLocale !== '' ? $activeLocale : 'de')))
     ?: ($activeLocale !== '' ? $activeLocale : 'de');
-$siteName = trim((string) ($siteSettings['name'] ?? 'Enari CMS')) ?: 'Enari CMS';
-$themeStorageKeyBase = trim((string) ($siteSettings['key'] ?? 'enari-cms')) ?: 'enari-cms';
-$themeStorageKeyBase = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower($themeStorageKeyBase)) ?? 'enari-cms';
+$siteName = trim((string) ($siteSettings['name'] ?? 'WorldMesh Worldbuilder CMS')) ?: 'WorldMesh Worldbuilder CMS';
+$themeStorageKeyBase = trim((string) ($siteSettings['key'] ?? 'worldmesh-cms')) ?: 'worldmesh-cms';
+$themeStorageKeyBase = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower($themeStorageKeyBase)) ?? 'worldmesh-cms';
 $themeStorageKeyBase = trim($themeStorageKeyBase, '-_');
-$themeStorageKey = ($themeStorageKeyBase !== '' ? $themeStorageKeyBase : 'enari-cms') . '-theme';
+$themeStorageKey = ($themeStorageKeyBase !== '' ? $themeStorageKeyBase : 'worldmesh-cms') . '-theme';
 $contentRoot = trim((string) ($contentSettings['root'] ?? ''));
 $homePageConfig = is_array($localeViewConfig['homePage'] ?? null) ? $localeViewConfig['homePage'] : array();
 $standalonePagesConfig = is_array($localeViewConfig['standalonePages'] ?? null) ? $localeViewConfig['standalonePages'] : array();

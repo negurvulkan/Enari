@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../cms/SimpleYamlParser.php';
 require_once __DIR__ . '/../cms/I18nContentValidator.php';
+require_once __DIR__ . '/../cms/SiteConfigLoader.php';
 
 /**
  * Parses cli flags.
@@ -67,7 +68,12 @@ $includeInfo = isset($flags['--info']);
 $showAll = isset($flags['--all']);
 
 $basePath = dirname(__DIR__);
-$siteConfig = require $basePath . '/cms/site.config.php';
+try {
+    $siteConfig = SiteConfigLoader::load($basePath);
+} catch (RuntimeException $exception) {
+    fwrite(STDERR, SiteConfigLoader::formatReport(SiteConfigLoader::validate($basePath)) . PHP_EOL);
+    exit(1);
+}
 
 $validator = new I18nContentValidator($basePath, is_array($siteConfig) ? $siteConfig : array());
 $report = $validator->validate($includeInfo);

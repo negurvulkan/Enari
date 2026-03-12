@@ -14,12 +14,21 @@ from typing import Iterable
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DE_ROOT = ROOT / "content" / "de" / "01_Weltbau"
-EN_ROOT = ROOT / "content" / "en" / "01_Worldbuilding"
+DE_ROOT = ROOT / "content" / "de" / "01_Demo-Archiv"
+EN_ROOT = ROOT / "content" / "en" / "01_Demo-Archive"
 TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single"
 MYMEMORY_URL = "https://api.mymemory.translated.net/get"
 MAX_CHARS = 4200
 MAX_WORKERS = 6
+SEGMENT_MAP = {
+    "01_Typisierte_Eintraege": "01_Typed_Entries",
+    "01_Illustrationen": "01_Illustrations",
+}
+FILE_MAP = {
+    "00_Uebersicht.md": "00_Overview.md",
+    "02_Medien_und_Embeds.md": "02_Media_and_Embeds.md",
+    "00_Hinweise.md": "00_Notes.md",
+}
 
 TEXT_CACHE: dict[str, str] = {}
 CACHE_LOCK = threading.Lock()
@@ -76,19 +85,28 @@ def split_frontmatter(text: str) -> tuple[str, str]:
 
 def target_path_for(source_path: Path) -> Path:
     relative = source_path.relative_to(DE_ROOT)
-    parts = list(relative.parts)
-    if parts and parts[0] == "01_Sprachen":
-        parts[0] = "01_Languages"
-    if parts and parts[-1] == "00_Uebersicht.md":
-        parts[-1] = "00_Overview.md"
+    parts = [SEGMENT_MAP.get(part, part) for part in relative.parts]
+    if parts:
+        parts[-1] = FILE_MAP.get(parts[-1], parts[-1])
     return EN_ROOT.joinpath(*parts)
 
 
 def rewrite_targets(text: str) -> str:
-    text = text.replace("01_Sprachen/", "01_Languages/")
-    text = text.replace("01_Sprachen\\", "01_Languages\\")
-    text = text.replace("`01_Sprachen`", "`01_Languages`")
-    text = text.replace("00_Uebersicht.md", "00_Overview.md")
+    replacements = (
+        ("01_Typisierte_Eintraege/", "01_Typed_Entries/"),
+        ("01_Typisierte_Eintraege\\", "01_Typed_Entries\\"),
+        ("`01_Typisierte_Eintraege`", "`01_Typed_Entries`"),
+        ("01_Illustrationen/", "01_Illustrations/"),
+        ("01_Illustrationen\\", "01_Illustrations\\"),
+        ("`01_Illustrationen`", "`01_Illustrations`"),
+        ("00_Uebersicht.md", "00_Overview.md"),
+        ("02_Medien_und_Embeds.md", "02_Media_and_Embeds.md"),
+        ("00_Hinweise.md", "00_Notes.md"),
+    )
+
+    for source, target in replacements:
+        text = text.replace(source, target)
+
     return text
 
 

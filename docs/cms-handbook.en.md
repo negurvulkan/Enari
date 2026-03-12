@@ -1,12 +1,12 @@
 # CMS Handbook
 
-This document is the human-facing introduction to the Enari Markdown CMS. It is written for authors, editors, maintainers, and anyone who needs to work with content, structure, or themes in the system.
+This document is the human-facing introduction to the WorldMesh Worldbuilder CMS. It is written for authors, editors, maintainers, and anyone who needs to work with content, structure, or themes in the system.
 
 There is also a separate hierarchical `AGENTS.md` system for AI-specific authoring guidance. This handbook explains the CMS itself, the main work areas, and the usual workflows for people.
 
 ## 1. What This CMS Is
 
-The Enari Markdown CMS is a file-based system for knowledge archives, worldbuilding, and structured content.
+The WorldMesh Worldbuilder CMS is a file-based system for knowledge archives, worldbuilding, and structured content.
 
 Core characteristics:
 
@@ -74,12 +74,12 @@ Typical frontmatter:
 
 ```yaml
 ---
-title: Veyrathi
-translation_key: worldbuilding.languages.veyrathi
-type: language
+title: Lysari
+translation_key: demo.archive.species.lysari
+type: species
 relations:
-  - type: derived_from
-    target: Proto-Veyatish
+  - type: originates_from
+    target: Astraea
 ---
 ```
 
@@ -92,7 +92,7 @@ Important fields:
 
 ## 4. Using Multilingual Content Correctly
 
-Multilingual support in v1.0 is locale-aware and based on separate content roots per language. The configuration lives in [cms/site.config.php](/cms/site.config.php).
+Multilingual support is locale-aware and based on separate content roots per language. New instances start from [cms/site.config.sample.php](/cms/site.config.sample.php), while the local runtime file lives at `cms/site.config.php`.
 
 Example:
 
@@ -121,8 +121,8 @@ Important rules:
 Example with localized folders:
 
 ```text
-content/de/01_Weltbau/01_Sprachen/00_Uebersicht.md
-content/en/01_Worldbuilding/01_Languages/00_Overview.md
+content/de/01_Demo-Archiv/00_Uebersicht.md
+content/en/01_Demo-Archive/00_Overview.md
 ```
 
 If both pages describe the same concept, they must share the same `translation_key`.
@@ -150,7 +150,7 @@ Typical examples:
 Important:
 
 - A file inside `cms/pages/` is not enough on its own.
-- The page also has to be registered in [cms/site.config.php](/cms/site.config.php).
+- The page also has to be registered in the local `cms/site.config.php`.
 - The slug, footer/sidebar placement, and locale-specific variants come from configuration, not from folder structure.
 
 ## 6. Markdown Dialect and Extensions
@@ -162,8 +162,8 @@ The CMS supports more than plain Markdown. For exact syntax, use [docs/markdown-
 Internal links should usually be written as relative links:
 
 ```md
-[Languages](../01_Languages/00_Overview.md)
-[Phonology](./01_Phonology.md)
+[Archive overview](../00_Overview.md)
+[Lysari](./01_Species_Lysari.md)
 ```
 
 Hand-built runtime URLs such as `/<locale>/?page=...` should be avoided when a relative link is sufficient.
@@ -173,8 +173,8 @@ Hand-built runtime URLs such as `/<locale>/?page=...` should be avoided when a r
 Wiki-style forms are also supported:
 
 ```md
-[[../01_Languages/00_Overview.md|Languages]]
-![[../99_Media/map.png|caption=Regional map|large|right|popover]]
+[[../00_Overview.md|Archive overview]]
+![[../99_Medien/01_Illustrations/demo-orbit-map.svg|caption=Orbit map|large|right|popover]]
 ```
 
 ### Icons
@@ -204,8 +204,8 @@ flowchart TD
 
 ```md
 ::graph
-title: Language Family
-from: veyrathi
+title: Demo Archive
+from: star-archive
 depth: 2
 layout: cose
 ::
@@ -302,6 +302,6 @@ php scripts/release-check.php --strict
 - [README.md](/README.md): project overview and quick start
 - [docs/markdown-extensions-reference.md](/docs/markdown-extensions-reference.md): exact Markdown syntax
 - [docs/release-checks.md](/docs/release-checks.md): release and smoke checks
+- [docs/public-repo-workflow.md](/docs/public-repo-workflow.md): public demo repo vs. local private content
 - [docs/v1.0-upgrade.md](/docs/v1.0-upgrade.md): context for the v1.0 changes
 - [docs/knowledge-system-architecture.md](/docs/knowledge-system-architecture.md): architecture and knowledge model
-

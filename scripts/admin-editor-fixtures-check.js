@@ -90,25 +90,25 @@ runTest("mermaid builder roundtrip", () => {
 
 runTest("graph builder roundtrip", () => {
     const block = adapter.buildGraphBlock({
-        title: "Language graph",
-        from: "worldbuilding.languages",
+        title: "Demo archive graph",
+        from: "demo.archive",
         depth: 2,
         direction: "outgoing",
         layout: "breadthfirst",
-        filterTypes: ["language", "family"],
-        highlight: ["worldbuilding.languages"],
+        filterTypes: ["species", "institution"],
+        highlight: ["demo.archive"],
         nodes: [
-            { page: "content/de/01_Weltbau/01_Sprachen/00_Uebersicht.md", label: "Sprachen", type: "overview" },
-            { id: "family.ur", label: "Ur family", type: "family", highlight: true },
+            { page: "content/de/01_Demo-Archiv/01_Typisierte_Eintraege/00_Uebersicht.md", label: "Typisierte Eintraege", type: "overview" },
+            { id: "species.lysari", label: "Lysari", type: "species", highlight: true },
         ],
         edges: [
-            { source: "worldbuilding.languages", target: "family.ur", kind: "contains", label: "contains" },
+            { source: "demo.archive", target: "species.lysari", kind: "contains", label: "contains" },
         ],
     });
 
     const parsed = adapter.parseGraphBlock(block);
-    assert.equal(parsed.title, "Language graph");
-    assert.equal(parsed.from, "worldbuilding.languages");
+    assert.equal(parsed.title, "Demo archive graph");
+    assert.equal(parsed.from, "demo.archive");
     assert.equal(parsed.depth, 2);
     assert.equal(parsed.layout, "breadthfirst");
     assert.equal(parsed.nodes.length, 2);

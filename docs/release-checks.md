@@ -1,18 +1,34 @@
 # Release Checks
 
-Diese Doku beschreibt die eingebauten v1.0-Checks fuer Syntax, Content-Konsistenz und Runtime-Smoke-Tests.
+Diese Doku beschreibt die eingebauten Checks fuer lokale Configs, Syntax, Content-Konsistenz und Runtime-Smoke-Tests.
 
 ## Uebersicht
 
-Es gibt drei zentrale Skripte:
+Es gibt vier zentrale Skripte:
 
 ```bash
+php scripts/validate-config.php
 php scripts/validate-content.php
 php scripts/smoke-test.php
 php scripts/release-check.php
 ```
 
-## 1. Content-Validator
+## 1. Config-Validator
+
+```bash
+php scripts/validate-config.php
+```
+
+Der Config-Check prueft:
+
+- ob `cms/site.config.php` vorhanden ist
+- ob die Datei ein Array zurueckgibt
+- ob Pflichtbereiche wie `content`, `i18n`, `site`, `homePage`, `standalonePages` und `admin` vorhanden sind
+- ob referenzierte Pfade wie Content-Roots, Homepages, Standalone-Pages, Preview-Theme und Modul-Bootstraps existieren
+
+Wenn die Runtime-Config fehlt, kopiere zunaechst `cms/site.config.sample.php` nach `cms/site.config.php`.
+
+## 2. Content-Validator
 
 ```bash
 php scripts/validate-content.php
@@ -31,7 +47,7 @@ Der Validator prueft:
 
 `--strict` behandelt Warnungen ebenfalls als Fehler.
 
-## 2. Release Smoke Test
+## 3. Release Smoke Test
 
 ```bash
 php scripts/smoke-test.php
@@ -47,7 +63,7 @@ Die Smoke-Suite nutzt einen internen Request-Runner und prueft:
 - 404 fuer unbekannte Seiten
 - Rendering aller installierten Themes
 
-## 3. Kombinierter Release Check
+## 4. Kombinierter Release Check
 
 ```bash
 php scripts/release-check.php
@@ -56,6 +72,7 @@ php scripts/release-check.php --strict
 
 Der kombinierte Check fuehrt aus:
 
+- Config-Validierung
 - PHP-Syntaxpruefung ueber den Projektbestand
 - JS-Syntaxpruefung mit `node --check`
 - Content-Validator
@@ -64,6 +81,7 @@ Der kombinierte Check fuehrt aus:
 ## Empfohlene Reihenfolge vor einem Release
 
 ```bash
+php scripts/validate-config.php
 php scripts/validate-content.php
 php scripts/smoke-test.php
 php scripts/release-check.php --strict
@@ -73,6 +91,12 @@ php scripts/release-check.php --strict
 
 Typische Ursachen:
 
+- `missing_config_file`
+  - `cms/site.config.php` fehlt. Kopiere `cms/site.config.sample.php` an diesen Pfad.
+- `invalid_config_return`
+  - Die Config liefert kein PHP-Array zurueck.
+- `missing_required_section`
+  - Ein Pflichtbereich wie `i18n` oder `admin` fehlt.
 - `duplicate_translation_key`
   - Zwei Dokumente derselben Locale teilen denselben Key.
 - `missing_default_translation`
@@ -89,5 +113,6 @@ Typische Ursachen:
 Ein Release ist freigabereif, wenn:
 
 - `php scripts/release-check.php --strict` erfolgreich endet
+- `php scripts/validate-config.php` keine Fehler meldet
 - keine offenen i18n-Warnungen mehr vorhanden sind
 - README und Migrationsdoku zum aktuellen Stand passen

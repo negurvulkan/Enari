@@ -7,6 +7,7 @@ require_once __DIR__ . '/../cms/I18nContentValidator.php';
 require_once __DIR__ . '/../cms/SchemaRegistry.php';
 require_once __DIR__ . '/../cms/ContentRepository.php';
 require_once __DIR__ . '/../cms/ReleaseSmokeTester.php';
+require_once __DIR__ . '/../cms/SiteConfigLoader.php';
 
 /**
  * Processes release flags.
@@ -224,11 +225,21 @@ $strict = isset($flags['--strict']) || isset($flags['--fail-on-warnings']);
 $includeInfo = isset($flags['--info']);
 
 $basePath = dirname(__DIR__);
-$siteConfig = require $basePath . '/cms/site.config.php';
-
 $hasFailures = false;
 
 echo 'Release Check' . PHP_EOL;
+
+$configReport = SiteConfigLoader::validate($basePath);
+if (!empty($configReport['ok'])) {
+    echo '[PASS] Config validation' . PHP_EOL;
+    $siteConfig = SiteConfigLoader::load($basePath);
+} else {
+    echo '[FAIL] Config validation' . PHP_EOL;
+    foreach (($configReport['errors'] ?? array()) as $error) {
+        echo '- ' . $error . PHP_EOL;
+    }
+    exit(1);
+}
 
 $phpSyntax = release_check_php_syntax($basePath);
 if ($phpSyntax['failures'] === array()) {

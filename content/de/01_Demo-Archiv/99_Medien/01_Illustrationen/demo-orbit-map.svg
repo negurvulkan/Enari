@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+  <title id="title">Demo orbit map</title>
+  <desc id="desc">Simplified public demo illustration for the media browser.</desc>
+  <rect width="720" height="420" fill="#09131f"/>
+  <circle cx="360" cy="210" r="66" fill="#39b7ff"/>
+  <circle cx="360" cy="210" r="132" fill="none" stroke="#58d0ff" stroke-width="4" stroke-dasharray="10 12"/>
+  <circle cx="360" cy="210" r="182" fill="none" stroke="#2f8fbe" stroke-width="3" opacity="0.7"/>
+  <circle cx="490" cy="210" r="18" fill="#f5c46c"/>
+  <circle cx="178" cy="210" r="12" fill="#b8f0ff"/>
+  <path d="M 132 300 C 226 264 304 320 420 288 S 588 228 648 282" fill="none" stroke="#79d4ff" stroke-width="5" opacity="0.7"/>
+  <text x="44" y="58" fill="#edf6fb" font-family="Segoe UI, Arial, sans-serif" font-size="28">Demo Orbit Map</text>
+  <text x="44" y="92" fill="#9ab6c5" font-family="Segoe UI, Arial, sans-serif" font-size="18">Public sample asset for embeds and media previews</text>
+</svg>
