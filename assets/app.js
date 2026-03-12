@@ -18,7 +18,7 @@ const themeCookiePath = themeSelect && themeSelect.dataset.themeCookiePath
     : (themeSettings.cookiePath || "/");
 const themeStorageKey = themeSelect && themeSelect.dataset.themeStorageKey
     ? themeSelect.dataset.themeStorageKey
-    : "enari-cms-theme";
+    : "worldmesh-cms-theme";
 const systemThemeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
 let applyThemeSelection = null;

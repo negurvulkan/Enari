@@ -563,11 +563,11 @@ final class ReleaseSmokeTester
      */
     private function buildThemeStorageKey(array $siteConfig): string
     {
-        $base = trim((string) ($siteConfig['site']['key'] ?? 'enari-cms'));
-        $base = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower($base)) ?? 'enari-cms';
+        $base = trim((string) ($siteConfig['site']['key'] ?? 'worldmesh-cms'));
+        $base = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower($base)) ?? 'worldmesh-cms';
         $base = trim($base, '-_');
 
-        return ($base !== '' ? $base : 'enari-cms') . '-theme';
+        return ($base !== '' ? $base : 'worldmesh-cms') . '-theme';
     }
 
     /**

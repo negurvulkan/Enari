@@ -1009,7 +1009,7 @@ final class GitWorkspace
             'allowRemoteSetup' => !array_key_exists('allowRemoteSetup', $config) || !empty($config['allowRemoteSetup']),
             'allowPull' => !array_key_exists('allowPull', $config) || !empty($config['allowPull']),
             'allowPush' => !array_key_exists('allowPush', $config) || !empty($config['allowPush']),
-            'authorName' => trim((string) ($config['authorName'] ?? 'Enari CMS')),
+            'authorName' => trim((string) ($config['authorName'] ?? 'WorldMesh CMS')),
             'authorEmail' => trim((string) ($config['authorEmail'] ?? 'cms@example.invalid')),
             'mergeSessionRoot' => $this->normalizePath((string) ($config['mergeSessionRoot'] ?? 'cache/admin-git-merge')),
         );
@@ -1985,9 +1985,9 @@ final class GitWorkspace
     private function runGitCommit(array $arguments): array
     {
         $environment = array(
-            'GIT_AUTHOR_NAME' => (string) ($this->config['authorName'] ?? 'Enari CMS'),
+            'GIT_AUTHOR_NAME' => (string) ($this->config['authorName'] ?? 'WorldMesh CMS'),
             'GIT_AUTHOR_EMAIL' => (string) ($this->config['authorEmail'] ?? 'cms@example.invalid'),
-            'GIT_COMMITTER_NAME' => (string) ($this->config['authorName'] ?? 'Enari CMS'),
+            'GIT_COMMITTER_NAME' => (string) ($this->config['authorName'] ?? 'WorldMesh CMS'),
             'GIT_COMMITTER_EMAIL' => (string) ($this->config['authorEmail'] ?? 'cms@example.invalid'),
         );
 

@@ -347,7 +347,7 @@ function build_xenon_layout_view(array $layoutContext): array
         'spotlightLabel' => $spotlightLabel,
         'scanPlaceholder' => $scanPlaceholder,
         'sidebarStatusWidth' => (string) max(48, min(92, 52 + (int) (($stats['documents'] ?? 0) % 34))) . '%',
-        'userChipId' => strtoupper(substr((string) ($siteSettings['key'] ?? 'enari'), 0, 12)),
+        'userChipId' => strtoupper(substr((string) ($siteSettings['key'] ?? 'worldmesh'), 0, 12)),
         'userChipAvatar' => strtoupper(substr((string) ($siteSettings['brandTitle'] ?? 'EN'), 0, 2)),
         'statusCards' => $statusCards,
         'showcaseNodes' => $showcaseItems,
@@ -683,7 +683,7 @@ function build_compendium_layout_view(array $layoutContext): array
     $quality = build_compendium_quality_summary($isDetailPage, $wordCount, $sectionCount, $relationCount, $stats);
     $contributors = build_compendium_contributors(
         $frontmatter,
-        (string) ($siteSettings['brandTitle'] ?? ($layoutContext['siteName'] ?? 'Enari CMS'))
+        (string) ($siteSettings['brandTitle'] ?? ($layoutContext['siteName'] ?? 'WorldMesh CMS'))
     );
     $quickFacts = build_compendium_quick_facts(
         $frontmatter,

@@ -11,7 +11,7 @@ declare(strict_types=1);
  */
 final class AdminWorkspace
 {
-    private const SESSION_KEY = 'enari_admin';
+    private const SESSION_KEY = 'worldmesh_admin';
 
     /**
      * Stores the base path.
@@ -346,7 +346,7 @@ final class AdminWorkspace
             'password' => $password,
             'passwordHash' => $passwordHash,
             'historyRoot' => $historyRoot !== '' ? $historyRoot : 'cache/admin-history',
-            'sessionCookie' => trim((string) ($adminConfig['sessionCookie'] ?? 'enari-admin')),
+            'sessionCookie' => trim((string) ($adminConfig['sessionCookie'] ?? 'worldmesh-admin')),
             'trustedLocalFallback' => !array_key_exists('trustedLocalFallback', $adminConfig) || !empty($adminConfig['trustedLocalFallback']),
             'previewTheme' => $previewTheme,
         );
@@ -361,7 +361,7 @@ final class AdminWorkspace
             return;
         }
 
-        $cookieName = trim((string) ($this->config['sessionCookie'] ?? 'enari-admin'));
+        $cookieName = trim((string) ($this->config['sessionCookie'] ?? 'worldmesh-admin'));
         if ($cookieName !== '') {
             session_name($cookieName);
         }
@@ -588,10 +588,14 @@ final class AdminWorkspace
         echo '</div>';
         echo '<p class="theme-loader__label" data-admin-loader-label>Arbeitsbereich wird geladen...</p>';
         echo '</div></div>';
+        $adminBrand = trim((string) (($this->siteConfig['site']['brandTitle'] ?? $this->siteConfig['site']['name'] ?? 'WorldMesh')));
+        if ($adminBrand === '') {
+            $adminBrand = 'WorldMesh';
+        }
         echo '<div class="admin-live-region" data-admin-live role="status" aria-live="polite" aria-atomic="true"></div>';
         echo '<div class="admin-app" data-admin-app="true">';
         echo '<header class="admin-header">';
-        echo '<div class="admin-header__brand"><button type="button" class="admin-button admin-button--ghost admin-button--small admin-sidebar__toggle" data-admin-sidebar-toggle aria-controls="admin-sidebar" aria-expanded="false">Inhalte</button><div><p class="admin-header__eyebrow">Enari ' . $versionLabel . '</p><h1 class="admin-header__title">' . $title . '</h1></div></div>';
+        echo '<div class="admin-header__brand"><button type="button" class="admin-button admin-button--ghost admin-button--small admin-sidebar__toggle" data-admin-sidebar-toggle aria-controls="admin-sidebar" aria-expanded="false">Inhalte</button><div><p class="admin-header__eyebrow">' . $this->escapeHtml($adminBrand) . ' ' . $versionLabel . '</p><h1 class="admin-header__title">' . $title . '</h1></div></div>';
         echo '<div class="admin-header__actions"><button type="button" class="admin-button admin-button--ghost" data-admin-refresh>Neu laden</button><button type="button" class="admin-button admin-button--ghost" data-admin-run-health>Health</button>' . $logoutForm . '</div>';
         echo '</header>';
         echo '<button type="button" class="admin-sidebar-overlay" data-admin-sidebar-overlay hidden aria-hidden="true"></button>';
@@ -3134,7 +3138,7 @@ final class AdminWorkspace
             'documentRelations' => $documentRelations,
             'contentHtml' => $contentHtml,
             'pageLead' => (string) ($previewDocument['excerpt'] ?? ''),
-            'siteName' => trim((string) (($this->siteConfig['site']['name'] ?? 'Enari CMS'))),
+            'siteName' => trim((string) (($this->siteConfig['site']['name'] ?? 'WorldMesh CMS'))),
             'uiText' => array(),
         ));
         $articleHtml = $this->typeTemplateRenderer->render(
@@ -3150,7 +3154,7 @@ final class AdminWorkspace
                 'documentRelations' => $documentRelations,
                 'contentHtml' => $contentHtml,
                 'pageLead' => (string) ($previewDocument['excerpt'] ?? ''),
-                'siteName' => trim((string) (($this->siteConfig['site']['name'] ?? 'Enari CMS'))),
+                'siteName' => trim((string) (($this->siteConfig['site']['name'] ?? 'WorldMesh CMS'))),
                 'uiText' => array(),
             )
         );

@@ -1,4 +1,4 @@
-# AI Authoring Guide for Enari Markdown CMS
+# AI Authoring Guide for WorldMesh Markdown CMS
 
 This repository uses a hierarchical `AGENTS.md` system for AI-assisted authoring. This root file defines the global defaults. Nested `AGENTS.md` files in subdirectories are more specific and take precedence for their subtree.
 

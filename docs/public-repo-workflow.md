@@ -66,7 +66,7 @@ Danach:
 2. private Homepages und sonstige nicht oeffentliche Zusatzseiten lokal sichern
 3. `content/` auf einen kleinen Demo-Bestand reduzieren
 4. `.gitignore` mindestens um `site.config.php` und alle lokal verwendeten nicht oeffentlichen Content- oder Backup-Pfade ergaenzen
-5. die getrackte Runtime-Config an ihrem tatsaechlichen Altpfad aus dem Tracking loesen, in diesem Repo derzeit per `git rm --cached cms/site.config.php`
+5. falls eine Runtime-Config versehentlich getrackt wurde, sie an ihrem tatsaechlichen Pfad aus dem Tracking loesen, im aktuellen Repo also primaer per `git rm --cached site.config.php`; fuer aeltere lokale Historien kann zusaetzlich noch `git rm --cached cms/site.config.php` relevant sein
 
 ## Validierung vor einer Veroeffentlichung
 
@@ -102,14 +102,22 @@ git commit -m "Initial public release of WorldMesh Worldbuilder CMS"
 git tag -d v1.1 v1.2
 git tag -a v1.2 -m "Public release v1.2"
 
-git branch -M public-main master
+git branch -M public-main main
 git rev-list --objects --all | findstr /I "Enari 01_Weltbau 01_Worldbuilding 99_Medien"
 ```
+
+Als sicherer Maintainer-Shortcut liegt derselbe Ablauf ausserdem als nicht-destruktives Hilfsskript bereit:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/prepare-public-rewrite.ps1
+```
+
+Das Skript arbeitet in einer separaten Rewrite-Kopie, erstellt das Bundle-Backup, baut den neuen oeffentlichen Root-Commit und stoppt vor jedem Remote-Push.
 
 Erst wenn diese Rewrite-Kopie sauber ist, folgt die Veroeffentlichung:
 
 ```powershell
-git push --force origin master
+git push --force origin main
 git push --force origin :refs/tags/v1.1
 git push --force origin v1.2
 ```
