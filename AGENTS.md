@@ -10,7 +10,7 @@ The project is a file-based Markdown CMS for worldbuilding and structured knowle
 
 Primary sources of truth:
 
-- `cms/site.config.php` for locales, standalone pages, home pages, theme/runtime settings, and UI labels
+- `site.config.php` for the local runtime configuration and `site.config.sample.php` for the public default settings, including locales, standalone pages, home pages, theme/runtime settings, and UI labels
 - `config/schema/types.yaml` and `config/schema/relations.yaml` for structured content modeling
 - `themes/` for theme-specific templates and assets
 - `cms/type-templates/` for typed body templates
@@ -33,11 +33,11 @@ If a task spans more than one area, update the modeling source first, then the r
 
 ## 3. Global i18n Rules
 
-- Never hardcode locale assumptions. Read `cms/site.config.php` first.
+- Never hardcode locale assumptions. Read `site.config.php` first.
 - Never map translations by folder or file path. Translation identity is defined by `translation_key`.
 - Locale roots may use different localized folder names. Matching happens by `translation_key`, not by mirrored paths.
 - For Markdown content, `translation_key` lives in frontmatter as `translation_key`.
-- For configured extra documents in `cms/site.config.php`, translation identity uses `translationKey`.
+- For configured extra documents in `site.config.php`, translation identity uses `translationKey`.
 - A page without `translation_key` is locale-local and must stay intentionally local.
 - Do not invent fallback routes. The CMS only falls back when the translation group is already known.
 

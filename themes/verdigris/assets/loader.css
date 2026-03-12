@@ -1,0 +1,28 @@
+:root[data-theme-resolved="verdigris"] .theme-loader {
+    --theme-loader-overlay: rgba(10, 16, 17, 0.9);
+    --theme-loader-panel-bg: rgba(18, 25, 26, 0.94);
+    --theme-loader-panel-border: rgba(213, 191, 122, 0.14);
+    --theme-loader-text: #ebe5d8;
+    --theme-loader-muted: #aeb6aa;
+    --theme-loader-accent: #d5bf7a;
+    --theme-loader-accent-soft: #75b3a0;
+    --theme-loader-core-shadow: rgba(117, 179, 160, 0.3);
+}
+
+:root[data-theme-resolved="verdigris"] .theme-loader__stage {
+    background:
+        radial-gradient(circle at 50% 50%, rgba(117, 179, 160, 0.16), transparent 64%),
+        radial-gradient(circle at 50% 50%, rgba(213, 191, 122, 0.08), transparent 86%);
+}
+
+:root[data-theme-resolved="verdigris"] .theme-loader__ring--outer {
+    border-style: dashed;
+    animation-duration: 2.6s;
+}
+
+:root[data-theme-resolved="verdigris"] .theme-loader__core {
+    border-radius: 18%;
+    box-shadow:
+        0 0 0 1px rgba(213, 191, 122, 0.18),
+        0 0 1.4rem rgba(117, 179, 160, 0.34);
+}

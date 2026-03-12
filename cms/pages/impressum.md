@@ -12,4 +12,4 @@ Trage hier die Anbieterkennzeichnung, Kontaktangaben und weitere verpflichtende 
 
 ## Hinweis zur Einbindung
 
-Die Verknuepfung dieser Seite wird ueber `cms/site.config.php` gesteuert. Dort kannst du auch den Slug oder weitere Platzierungen in Sidebar und Footer anpassen.
+Die Verknuepfung dieser Seite wird ueber `site.config.php` gesteuert. Dort kannst du auch den Slug oder weitere Platzierungen in Sidebar und Footer anpassen.

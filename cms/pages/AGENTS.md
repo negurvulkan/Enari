@@ -11,7 +11,7 @@ Typical examples:
 - legal notice / imprint
 - privacy policy
 - home page content referenced by config
-- other standalone pages registered through `cms/site.config.php`
+- other standalone pages registered through `site.config.php`
 
 These pages are not normal archive-tree pages.
 
@@ -19,7 +19,7 @@ These pages are not normal archive-tree pages.
 
 Creating the Markdown file is not enough.
 
-When a page in this directory should be reachable in the CMS, also update `cms/site.config.php`:
+When a page in this directory should be reachable in the CMS, also update `site.config.php`:
 
 - `homePage` for home content
 - `standalonePages` for service and policy pages
@@ -37,7 +37,7 @@ Use `translation_key` in the Markdown frontmatter when the page itself should al
 When adding locale variants:
 
 - add the localized Markdown file here
-- register the locale-specific page in the locale section of `cms/site.config.php`
+- register the locale-specific page in the locale section of `site.config.php`
 - reuse the same `translationKey`
 
 ## Authoring Rules

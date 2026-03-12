@@ -1,0 +1,29 @@
+:root[data-theme-resolved="encyclopedia"] .theme-loader {
+    --theme-loader-overlay: rgba(2, 6, 10, 0.88);
+    --theme-loader-panel-bg: rgba(6, 11, 18, 0.94);
+    --theme-loader-panel-border: rgba(58, 180, 255, 0.14);
+    --theme-loader-text: #edf6ff;
+    --theme-loader-muted: #85a5c6;
+    --theme-loader-accent: #3ab4ff;
+    --theme-loader-accent-soft: #8ee1ff;
+    --theme-loader-core-shadow: rgba(58, 180, 255, 0.34);
+}
+
+:root[data-theme-resolved="encyclopedia"] .theme-loader__stage {
+    background:
+        linear-gradient(rgba(58, 180, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(58, 180, 255, 0.06) 1px, transparent 1px),
+        radial-gradient(circle at 50% 50%, rgba(58, 180, 255, 0.14), transparent 64%);
+    background-size: 100% 1.25rem, 1.25rem 100%, auto;
+}
+
+:root[data-theme-resolved="encyclopedia"] .theme-loader__ring,
+:root[data-theme-resolved="encyclopedia"] .theme-loader__stage::before {
+    clip-path: polygon(25% 8%, 75% 8%, 92% 50%, 75% 92%, 25% 92%, 8% 50%);
+    border-radius: 0;
+}
+
+:root[data-theme-resolved="encyclopedia"] .theme-loader__core {
+    width: 30%;
+    border-radius: 18%;
+}

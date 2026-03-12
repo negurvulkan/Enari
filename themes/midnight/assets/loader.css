@@ -1,0 +1,27 @@
+:root[data-theme-resolved="midnight"] .theme-loader {
+    --theme-loader-overlay: rgba(7, 11, 20, 0.88);
+    --theme-loader-panel-bg: rgba(13, 20, 36, 0.94);
+    --theme-loader-panel-border: rgba(140, 185, 255, 0.16);
+    --theme-loader-text: #eef2ff;
+    --theme-loader-muted: #a7b3d6;
+    --theme-loader-accent: #8cb9ff;
+    --theme-loader-accent-soft: #5cd0d9;
+    --theme-loader-core-shadow: rgba(92, 208, 217, 0.28);
+}
+
+:root[data-theme-resolved="midnight"] .theme-loader__stage {
+    background:
+        radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.28) 0 1px, transparent 2px),
+        radial-gradient(circle at 72% 36%, rgba(255, 255, 255, 0.24) 0 1px, transparent 2px),
+        radial-gradient(circle at 56% 76%, rgba(255, 255, 255, 0.18) 0 1px, transparent 2px),
+        radial-gradient(circle at 50% 50%, rgba(92, 208, 217, 0.12), transparent 64%);
+}
+
+:root[data-theme-resolved="midnight"] .theme-loader__ring--outer {
+    border-style: dashed;
+    animation-duration: 2.8s;
+}
+
+:root[data-theme-resolved="midnight"] .theme-loader__beam {
+    opacity: 0.5;
+}

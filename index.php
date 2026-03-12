@@ -1255,8 +1255,8 @@ function render_config_setup_page(string $message): void
         . 'pre{white-space:pre-wrap;line-height:1.6;background:rgba(255,255,255,.04);padding:1rem;border-radius:12px;overflow:auto}'
         . '</style></head><body><main class="setup"><section class="panel"><p class="eyebrow">Setup Required</p>'
         . '<h1>Die lokale CMS-Konfiguration fehlt oder ist ungueltig.</h1>'
-        . '<p>Dieses Repository liefert bewusst nur die Vorlage <code>cms/site.config.sample.php</code>. '
-        . 'Lege daraus lokal eine <code>cms/site.config.php</code> an und konfiguriere dort die Pfade zu deinem lokalen Content-Bestand.</p>'
+        . '<p>Dieses Repository liefert bewusst nur die Vorlage <code>site.config.sample.php</code>. '
+        . 'Lege daraus lokal eine <code>site.config.php</code> an und konfiguriere dort die Pfade zu deinem lokalen Content-Bestand.</p>'
         . '<pre>' . $safeMessage . '</pre></section></main></body></html>';
     exit;
 }
@@ -1297,7 +1297,7 @@ $uiDefaults = array(
     'notFoundText' => 'Die gewünschte Markdown-Seite konnte nicht aufgelöst werden. Unten findest du die vorhandenen Hauptbereiche.',
     'missingHomeEyebrow' => 'Startseite',
     'missingHomeTitle' => 'Startseite nicht konfiguriert',
-    'missingHomeText' => 'Lege eine Markdown-Datei an und hinterlege sie in cms/site.config.php unter homePage.source.',
+    'missingHomeText' => 'Lege eine Markdown-Datei an und hinterlege sie in site.config.php unter homePage.source.',
     'currentSectionEyebrow' => 'In diesem Abschnitt',
     'currentSectionFallbackTitle' => 'Unterseiten',
     'emptyOverviewText' => 'Diese Übersichtsdatei ist aktuell leer. Die Unterseiten dieses Bereichs sind aber bereits verfügbar.',
@@ -2018,7 +2018,9 @@ if (is_file($layoutTemplatePath)) {
     $bodyHtml = (string) ob_get_clean();
 }
 
-?><!DOCTYPE html>
+$pageLoaderLabel = 'Inhalte werden geladen...';
+?>
+<!DOCTYPE html>
 <html lang="<?= e($siteLanguage) ?>"<?= render_html_attributes($themeRootAttributes) ?> style="color-scheme: <?= e($themeColorScheme) ?>;">
 <head>
     <meta charset="utf-8">
@@ -2087,6 +2089,19 @@ if (is_file($layoutTemplatePath)) {
 <?php endforeach; ?>
 </head>
 <body>
+    <div class="theme-loader theme-loader--site" data-page-loader data-loader-state="visible" data-loader-surface="site" aria-hidden="false">
+        <div class="theme-loader__panel" role="status" aria-live="polite" aria-atomic="true">
+            <p class="theme-loader__eyebrow"><?= e($siteName) ?></p>
+            <div class="theme-loader__stage" aria-hidden="true">
+                <span class="theme-loader__ring theme-loader__ring--outer"></span>
+                <span class="theme-loader__ring theme-loader__ring--inner"></span>
+                <span class="theme-loader__beam"></span>
+                <span class="theme-loader__beam theme-loader__beam--secondary"></span>
+                <span class="theme-loader__core"></span>
+            </div>
+            <p class="theme-loader__label" data-page-loader-label><?= e($pageLoaderLabel) ?></p>
+        </div>
+    </div>
     <?= $bodyHtml ?>
 
     <script src="<?= e($repository->assetUrl('assets/app.js')) ?>" defer></script>

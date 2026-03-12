@@ -1,0 +1,33 @@
+:root[data-theme-resolved="xenon"] .theme-loader {
+    --theme-loader-overlay: rgba(3, 14, 16, 0.9);
+    --theme-loader-panel-bg: rgba(5, 25, 28, 0.94);
+    --theme-loader-panel-border: rgba(34, 233, 255, 0.16);
+    --theme-loader-text: #effffb;
+    --theme-loader-muted: #8ab7b6;
+    --theme-loader-accent: #22e9ff;
+    --theme-loader-accent-soft: #ef1dff;
+    --theme-loader-core-shadow: rgba(239, 29, 255, 0.28);
+}
+
+:root[data-theme-resolved="xenon"] .theme-loader__stage,
+:root[data-theme-resolved="xenon"] .theme-loader__stage::before,
+:root[data-theme-resolved="xenon"] .theme-loader__ring {
+    border-radius: 26%;
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+:root[data-theme-resolved="xenon"] .theme-loader__stage {
+    background:
+        linear-gradient(135deg, rgba(34, 233, 255, 0.08), transparent 54%),
+        linear-gradient(315deg, rgba(239, 29, 255, 0.1), transparent 56%),
+        radial-gradient(circle at 50% 50%, rgba(34, 233, 255, 0.14), transparent 62%);
+}
+
+:root[data-theme-resolved="xenon"] .theme-loader__ring--inner {
+    animation-duration: 1.1s;
+}
+
+:root[data-theme-resolved="xenon"] .theme-loader__core {
+    border-radius: 22%;
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}

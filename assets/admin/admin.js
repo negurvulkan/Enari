@@ -63,7 +63,9 @@
         locales: Array.isArray(bootstrap.locales) ? bootstrap.locales : [],
         editorConfig: bootstrap.editor || {},
         gitConfig: bootstrap.git || {},
+        activeWorkspace: "editor",
         mediaPayload: null,
+        mediaRequestKey: "",
         mediaView: {
             directory: "",
             rootPath: "",
@@ -89,6 +91,107 @@
 
     const apiBase = `${bootstrap.adminBaseUrl || "/admin"}/api`;
     const csrfToken = bootstrap.csrfToken || "";
+    const busyLoader = document.querySelector("[data-admin-loader]");
+    const busyLoaderLabel = busyLoader ? busyLoader.querySelector("[data-admin-loader-label]") : null;
+
+    let busyRequestCount = 0;
+    let busyLoaderDelayTimer = 0;
+    let busyLoaderHideTimer = 0;
+    let busyLoaderShownAt = busyLoader && busyLoader.dataset.loaderState === "visible" ? Date.now() : 0;
+    let busyLoaderLabelText = "Arbeitsbereich wird geladen...";
+
+    /**
+     * Applies the admin busy overlay state.
+     */
+    const applyBusyLoaderState = (visible, label = "") => {
+        if (!busyLoader) {
+            return;
+        }
+
+        if (label) {
+            busyLoaderLabelText = label;
+        }
+
+        if (busyLoaderLabel) {
+            busyLoaderLabel.textContent = busyLoaderLabelText;
+        }
+
+        if (visible) {
+            busyLoaderShownAt = Date.now();
+        }
+
+        busyLoader.dataset.loaderState = visible ? "visible" : "hidden";
+        busyLoader.setAttribute("aria-hidden", visible ? "false" : "true");
+        app.classList.toggle("is-busy", visible);
+        document.body.classList.toggle("is-busy", visible);
+    };
+
+    /**
+     * Starts a tracked busy state and returns a release callback.
+     */
+    const beginBusyState = (label = "Arbeitsbereich wird geladen...", mode = "auto") => {
+        if (!busyLoader || mode === "none") {
+            return () => {};
+        }
+
+        busyRequestCount += 1;
+        window.clearTimeout(busyLoaderHideTimer);
+
+        if (label) {
+            busyLoaderLabelText = label;
+        }
+
+        if (busyLoader.dataset.loaderState === "visible") {
+            applyBusyLoaderState(true, busyLoaderLabelText);
+        } else if (mode === "immediate") {
+            window.clearTimeout(busyLoaderDelayTimer);
+            busyLoaderDelayTimer = 0;
+            applyBusyLoaderState(true, busyLoaderLabelText);
+        } else if (busyLoader.dataset.loaderState !== "visible" && busyLoaderDelayTimer === 0) {
+            busyLoaderDelayTimer = window.setTimeout(() => {
+                busyLoaderDelayTimer = 0;
+                if (busyRequestCount > 0) {
+                    applyBusyLoaderState(true, busyLoaderLabelText);
+                }
+            }, 140);
+        }
+
+        let released = false;
+
+        return () => {
+            if (released) {
+                return;
+            }
+
+            released = true;
+            busyRequestCount = Math.max(0, busyRequestCount - 1);
+
+            if (busyRequestCount > 0) {
+                return;
+            }
+
+            window.clearTimeout(busyLoaderDelayTimer);
+            busyLoaderDelayTimer = 0;
+            window.clearTimeout(busyLoaderHideTimer);
+
+            const remaining = Math.max(0, 180 - (Date.now() - busyLoaderShownAt));
+            busyLoaderHideTimer = window.setTimeout(() => {
+                if (busyRequestCount === 0) {
+                    applyBusyLoaderState(false);
+                }
+            }, remaining);
+        };
+    };
+
+    /**
+     * Resolves the active workspace from the URL hash.
+     */
+    const resolveWorkspaceFromHash = () => {
+        const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        return params.get("workspace") || "editor";
+    };
+
+    state.activeWorkspace = resolveWorkspaceFromHash();
 
     const documentList = document.querySelector("[data-admin-document-list]");
     const filterInput = document.querySelector("[data-admin-filter]");
@@ -175,7 +278,8 @@
     /**
      * Processes request.
      */
-    const request = async (path, { method = "GET", body = null, isForm = false } = {}) => {
+    const request = async (path, { method = "GET", body = null, isForm = false, loading = "auto", loadingLabel = "" } = {}) => {
+        const releaseBusyState = beginBusyState(loadingLabel || "Arbeitsbereich wird geladen...", loading);
         const options = {
             method,
             headers: {},
@@ -192,15 +296,43 @@
             options.body = body;
         }
 
-        const response = await fetch(`${apiBase}/${path}`, options);
-        const payload = await response.json();
-        if (!response.ok || payload.ok === false) {
-            const error = new Error(payload.message || `Request failed: ${response.status}`);
-            error.payload = payload;
-            throw error;
-        }
+        try {
+            const response = await fetch(`${apiBase}/${path}`, options);
+            const raw = await response.text();
+            if (raw.trim() === "") {
+                const error = new Error(response.ok
+                    ? "Leere API-Antwort erhalten."
+                    : `Request failed: ${response.status}`);
+                error.payload = {
+                    ok: false,
+                    details: `Die Admin-API hat fuer ${path} keinen JSON-Body geliefert.`,
+                };
+                throw error;
+            }
 
-        return payload;
+            let payload;
+            try {
+                payload = JSON.parse(raw);
+            } catch (parseError) {
+                const error = new Error(`Ungueltige API-Antwort (${response.status}).`);
+                error.payload = {
+                    ok: false,
+                    details: raw.slice(0, 500),
+                };
+                error.cause = parseError;
+                throw error;
+            }
+
+            if (!response.ok || payload.ok === false) {
+                const error = new Error(payload.message || `Request failed: ${response.status}`);
+                error.payload = payload;
+                throw error;
+            }
+
+            return payload;
+        } finally {
+            releaseBusyState();
+        }
     };
 
     let editorShell = null;
@@ -329,6 +461,8 @@
                 targetPath,
                 title: nextTitle,
             },
+            loading: "immediate",
+            loadingLabel: "Sprachvariante wird angelegt...",
         });
 
         window.location.href = `${bootstrap.adminBaseUrl}?path=${encodeURIComponent(payload.path)}`;
@@ -763,6 +897,8 @@
                 const payload = await request("history/restore", {
                     method: "POST",
                     body: { path: state.currentDocument.path, snapshotId: entry.id },
+                    loading: "immediate",
+                    loadingLabel: "Snapshot wird wiederhergestellt...",
                 });
                 renderHistory(payload.history || []);
                 await loadDocument(state.currentDocument.path);
@@ -816,6 +952,8 @@
                 currentPath: state.currentDocument?.path || "",
                 locale: state.currentDocument?.locale || "",
             },
+            loading: "immediate",
+            loadingLabel: "Medienbestand wird aktualisiert...",
         });
 
         if (response.browser) {
@@ -1107,8 +1245,8 @@
             mediaSortSelect.value = state.mediaView.sort;
         }
 
-        if (editorShell) {
-            editorShell.setAssets(Array.isArray(browser.assets) ? browser.assets : []);
+        if (editorShell && Array.isArray(browser.assets) && browser.assets.length) {
+            editorShell.setAssets(browser.assets);
         }
 
         if (mediaTreeNode) {
@@ -1352,6 +1490,8 @@
             method: "POST",
             body: formData,
             isForm: true,
+            loading: "immediate",
+            loadingLabel: "Datei wird hochgeladen...",
         });
 
         if (payload.browser) {
@@ -1376,11 +1516,19 @@
 
         const summary = document.createElement("article");
         summary.className = "admin-status";
-        summary.innerHTML = `
-            <p class="admin-status-list__eyebrow">Summary</p>
-            <p class="admin-status__title">${report.summary?.errors || 0} Fehler · ${report.summary?.warnings || 0} Warnungen · ${report.summary?.infos || 0} Infos</p>
-            <p class="admin-document__meta">${report.summary?.documents || 0} Dokumente · ${report.summary?.assets || 0} Assets</p>
-        `;
+        if (report.summary?.deferred) {
+            summary.innerHTML = `
+                <p class="admin-status-list__eyebrow">Summary</p>
+                <p class="admin-status__title">Health-Check noch nicht ausgefuehrt</p>
+                <p class="admin-document__meta">${report.summary?.documents || 0} Dokumente · ${report.summary?.assets || 0} Assets</p>
+            `;
+        } else {
+            summary.innerHTML = `
+                <p class="admin-status-list__eyebrow">Summary</p>
+                <p class="admin-status__title">${report.summary?.errors || 0} Fehler · ${report.summary?.warnings || 0} Warnungen · ${report.summary?.infos || 0} Infos</p>
+                <p class="admin-document__meta">${report.summary?.documents || 0} Dokumente · ${report.summary?.assets || 0} Assets</p>
+            `;
+        }
         healthNode.append(summary);
 
         if (Array.isArray(report.issues) && report.issues.length) {
@@ -1580,13 +1728,13 @@
         `;
         list.append(summary);
 
-        changedDocuments.slice(0, 6).forEach((document) => {
+        changedDocuments.slice(0, 6).forEach((documentEntry) => {
             const item = document.createElement("article");
             item.className = "admin-status";
             item.innerHTML = `
-                <p class="admin-status-list__eyebrow">${escapeHtml(document.locale || "doc")}</p>
-                <p class="admin-status__title">${escapeHtml(document.title || document.path || "")}</p>
-                <p class="admin-document__meta">${escapeHtml(document.path || "")}</p>
+                <p class="admin-status-list__eyebrow">${escapeHtml(documentEntry.locale || "doc")}</p>
+                <p class="admin-status__title">${escapeHtml(documentEntry.title || documentEntry.path || "")}</p>
+                <p class="admin-document__meta">${escapeHtml(documentEntry.path || "")}</p>
             `;
             list.append(item);
         });
@@ -1694,7 +1842,9 @@
      * Loads the current Git workspace status from the admin API.
      */
     const loadGitStatus = async () => {
-        const payload = await request("git/status");
+        const payload = await request("git/status", {
+            loadingLabel: "Git-Status wird geladen...",
+        });
         renderGitStatus(payload.status || null);
         return payload.status || null;
     };
@@ -2002,6 +2152,7 @@
                     });
                     renderGitStatus(response.status || null);
                     if (response.shouldReload) {
+                        applyBusyLoaderState(true, "Arbeitsbereich wird aktualisiert...");
                         window.location.reload();
                     }
                 }));
@@ -2036,6 +2187,7 @@
             });
             renderGitStatus(response.status || null);
             if (response.shouldReload) {
+                applyBusyLoaderState(true, "Arbeitsbereich wird aktualisiert...");
                 window.location.reload();
             }
         }));
@@ -2093,6 +2245,7 @@
                     });
                     renderGitStatus(response.status || null);
                     if (response.shouldReload) {
+                        applyBusyLoaderState(true, "Arbeitsbereich wird aktualisiert...");
                         window.location.reload();
                     }
                 }));
@@ -2365,6 +2518,7 @@
             closeModal();
             renderGitStatus(response.status || null);
             if (response.shouldReload) {
+                applyBusyLoaderState(true, "Arbeitsbereich wird aktualisiert...");
                 window.location.reload();
                 return;
             }
@@ -2452,6 +2606,7 @@
         }
 
         if (payload.shouldReload) {
+            applyBusyLoaderState(true, "Arbeitsbereich wird aktualisiert...");
             window.location.reload();
             return;
         }
@@ -2503,6 +2658,7 @@
                         ...(collectPayload()),
                         body: markdown,
                     },
+                    loading: "none",
                 });
                 return payload.preview?.srcdoc || "";
             },
@@ -2541,9 +2697,34 @@
             mediaType: state.mediaView.mediaType || "all",
             sort: state.mediaView.sort || "name",
         });
-        const payload = await request(`media?${params.toString()}`);
+        const requestKey = params.toString();
+        const payload = await request(`media?${params.toString()}`, {
+            loadingLabel: "Medien werden geladen...",
+        });
         renderMedia(payload.browser || payload);
+        state.mediaRequestKey = requestKey;
         return payload.browser || payload;
+    };
+
+    /**
+     * Loads media only when the current workspace actually needs it.
+     */
+    const ensureMediaLoaded = async ({ force = false } = {}) => {
+        const params = new URLSearchParams({
+            locale: state.currentDocument?.locale || "",
+            currentPath: state.currentDocument?.path || "",
+            directory: state.mediaView.directory || "",
+            selection: state.mediaView.selection || "",
+            search: state.mediaView.search || "",
+            mediaType: state.mediaView.mediaType || "all",
+            sort: state.mediaView.sort || "name",
+        });
+        const nextRequestKey = params.toString();
+        if (!force && state.mediaPayload && state.mediaRequestKey === nextRequestKey) {
+            return state.mediaPayload;
+        }
+
+        return loadMedia();
     };
 
     /**
@@ -2557,6 +2738,7 @@
         const payload = await request("preview", {
             method: "POST",
             body: collectPayload(),
+            loading: "none",
         });
         renderValidation(payload.validation);
         previewFrame.srcdoc = payload.preview?.srcdoc || "";
@@ -2579,8 +2761,13 @@
      */
     const loadDocument = async (path) => {
         const params = new URLSearchParams({ path });
-        const payload = await request(`document?${params.toString()}`);
+        const payload = await request(`document?${params.toString()}`, {
+            loading: "immediate",
+            loadingLabel: "Dokument wird geladen...",
+        });
         state.currentDocument = payload.document;
+        state.mediaPayload = null;
+        state.mediaRequestKey = "";
         metadataFields.title.value = payload.document.metadata?.title || "";
         metadataFields.slug.value = payload.document.metadata?.slug || "";
         metadataFields.type.value = payload.document.metadata?.type || "";
@@ -2605,9 +2792,11 @@
         renderDocumentList(filterInput.value || "");
         updateToolbar();
         clearDirty();
-        await loadMedia();
         await updatePreview();
         await loadGitStatus();
+        if (state.activeWorkspace === "media") {
+            await ensureMediaLoaded();
+        }
     };
 
     /**
@@ -2621,6 +2810,8 @@
         const payload = await request("save", {
             method: "POST",
             body: collectPayload(),
+            loading: "immediate",
+            loadingLabel: "Dokument wird gespeichert...",
         });
         previewStatus.textContent = payload.message || "Gespeichert";
         await loadDocument(payload.path || state.currentDocument.path);
@@ -2680,14 +2871,26 @@
         if (state.currentDocument) {
             void loadDocument(state.currentDocument.path);
         } else {
+            applyBusyLoaderState(true, "Arbeitsbereich wird geladen...");
             window.location.reload();
         }
     });
 
     healthButton.addEventListener("click", async () => {
-        const payload = await request("health?includeSmoke=1");
+        const payload = await request("health?includeSmoke=1", {
+            loading: "immediate",
+            loadingLabel: "Health-Checks werden geladen...",
+        });
         renderHealth(payload.report);
         announce("Health-Report aktualisiert.");
+    });
+
+    app.addEventListener("cms-admin:workspace-change", (event) => {
+        const workspace = event?.detail?.workspace || "editor";
+        state.activeWorkspace = workspace;
+        if (workspace === "media" && (state.currentDocument || !state.documents.length)) {
+            void guardAsync(() => ensureMediaLoaded())();
+        }
     });
 
     if (uploadButton) {
@@ -2837,12 +3040,25 @@
         isRepository: false,
     });
 
-    const initialPath = bootstrap.selectedPath || state.documents[0]?.path;
-    if (initialPath) {
-        void guardAsync(loadDocument)(initialPath);
-    } else {
-        void guardAsync(loadMedia)();
-        void guardAsync(loadGitStatus)();
-    }
+    const finishInitialBoot = beginBusyState("Arbeitsbereich wird geladen...", "immediate");
+    void (async () => {
+        try {
+            const initialPath = bootstrap.selectedPath || state.documents[0]?.path;
+            if (initialPath) {
+                await loadDocument(initialPath);
+                return;
+            }
+
+            if (state.activeWorkspace === "media") {
+                await ensureMediaLoaded();
+            }
+
+            await loadGitStatus();
+        } catch (error) {
+            window.alert(formatRequestError(error));
+        } finally {
+            finishInitialBoot();
+        }
+    })();
 })();
 

@@ -16,40 +16,40 @@ Der oeffentliche Standard dieses Repos enthaelt:
 
 Lokal und absichtlich unversioniert bleibt vor allem:
 
-- `cms/site.config.php`
+- `site.config.php`
 - jeder lokale Content- oder Backup-Bestand, der nicht ins oeffentliche Repo soll
 
 ## Lokale Runtime-Konfiguration
 
-Die echte Runtime-Konfiguration lebt immer unter:
+Die echte Runtime-Konfiguration lebt kanonisch unter:
 
 ```text
-cms/site.config.php
+site.config.php
 ```
 
 Das Repo liefert nur die versionierte Vorlage:
 
 ```text
-cms/site.config.sample.php
+site.config.sample.php
 ```
 
 Neue Instanzen starten so:
 
 ```powershell
-Copy-Item cms/site.config.sample.php cms/site.config.php
+Copy-Item site.config.sample.php site.config.php
 php scripts/validate-config.php
 ```
 
-Die lokale `cms/site.config.php` kann danach auf jeden beliebigen lokalen Content-Pfad zeigen. Entscheidend ist nur, dass die referenzierten Content-Roots, Homepages und Zusatzseiten dort tatsaechlich existieren.
+Die lokale `site.config.php` kann danach auf jeden beliebigen lokalen Content-Pfad zeigen. Entscheidend ist nur, dass die referenzierten Content-Roots, Homepages und Zusatzseiten dort tatsaechlich existieren.
 
 ## Private Inhalte lokal behalten
 
 Wichtige Regeln:
 
 - private Inhalte zuerst lokal sichern
-- grosse Medien in dem lokalen Content-Baum belassen, den `cms/site.config.php` verwendet, damit relative Markdown-Pfade stabil bleiben
+- grosse Medien in dem lokalen Content-Baum belassen, den `site.config.php` verwendet, damit relative Markdown-Pfade stabil bleiben
 - nur der kleine Demo-Bestand unter `content/` bleibt oeffentlich versioniert
-- `cms/site.config.php` nie mit produktiven Werten committen
+- `site.config.php` nie mit produktiven Werten committen
 - bestehende lokale Pfade wie `private-content/` oder `private-pages/` duerfen bleiben, sind aber nur eine konkrete lokale Auspraegung und kein erforderliches Produktkonzept
 
 ## Tracking-Bereinigung im Arbeitsrepo
@@ -65,8 +65,8 @@ Danach:
 1. privaten Content lokal sichern oder in den gewuenschten lokalen Arbeitsordner uebernehmen
 2. private Homepages und sonstige nicht oeffentliche Zusatzseiten lokal sichern
 3. `content/` auf einen kleinen Demo-Bestand reduzieren
-4. `.gitignore` mindestens um `cms/site.config.php` und alle lokal verwendeten nicht oeffentlichen Content- oder Backup-Pfade ergaenzen
-5. `cms/site.config.php` mit `git rm --cached cms/site.config.php` aus dem Tracking loesen
+4. `.gitignore` mindestens um `site.config.php` und alle lokal verwendeten nicht oeffentlichen Content- oder Backup-Pfade ergaenzen
+5. die getrackte Runtime-Config an ihrem tatsaechlichen Altpfad aus dem Tracking loesen, in diesem Repo derzeit per `git rm --cached cms/site.config.php`
 
 ## Validierung vor einer Veroeffentlichung
 

@@ -142,6 +142,13 @@
         if (updateHash) {
             writeHashState(workspaceId, tabId);
         }
+
+        app.dispatchEvent(new CustomEvent("cms-admin:workspace-change", {
+            detail: {
+                workspace: workspaceId,
+                tab: tabId,
+            },
+        }));
     };
 
     /**

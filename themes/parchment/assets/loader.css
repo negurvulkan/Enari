@@ -1,0 +1,30 @@
+:root[data-theme-resolved="parchment"] .theme-loader {
+    --theme-loader-overlay: rgba(239, 227, 204, 0.84);
+    --theme-loader-panel-bg: rgba(252, 246, 235, 0.94);
+    --theme-loader-panel-border: rgba(125, 77, 40, 0.14);
+    --theme-loader-text: #352519;
+    --theme-loader-muted: #856954;
+    --theme-loader-accent: #7d4d28;
+    --theme-loader-accent-soft: #d6b184;
+    --theme-loader-core-shadow: rgba(125, 77, 40, 0.18);
+}
+
+:root[data-theme-resolved="parchment"] .theme-loader__stage {
+    background:
+        radial-gradient(circle at 50% 50%, rgba(214, 177, 132, 0.22), transparent 64%),
+        linear-gradient(135deg, rgba(125, 77, 40, 0.04), rgba(255, 255, 255, 0.12));
+}
+
+:root[data-theme-resolved="parchment"] .theme-loader__stage::before {
+    border-style: double;
+    border-width: 3px;
+}
+
+:root[data-theme-resolved="parchment"] .theme-loader__core {
+    border-radius: 24%;
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+:root[data-theme-resolved="parchment"] .theme-loader__beam {
+    opacity: 0.44;
+}

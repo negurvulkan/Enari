@@ -12,4 +12,4 @@ Replace this placeholder with the privacy policy that matches your project and h
 
 ## Integration Note
 
-The mapping is configured in `cms/site.config.php`. Additional policy pages can be registered the same way.
+The mapping is configured in `site.config.php`. Additional policy pages can be registered the same way.

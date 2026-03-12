@@ -25,4 +25,4 @@ The main project area lives in the [[demo.archive|Demo Archive]]. It contains a 
 
 ## Private content
 
-Production or private lore is intentionally not part of this public repository. Use your own local `cms/site.config.php` and point it at your local content tree when working with private data.
+Production or private lore is intentionally not part of this public repository. Use your own local `site.config.php` and point it at your local content tree when working with private data.

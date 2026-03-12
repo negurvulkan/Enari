@@ -11,6 +11,8 @@ const themeSelect = document.querySelector("[data-theme-select]");
 const themeHint = document.querySelector("[data-theme-hint]");
 const activeLink = document.querySelector(".nav-link.is-active, .nav-group__overview.is-active");
 const themeSettings = window.__CMS_THEME_SETTINGS || {};
+const pageLoader = document.querySelector("[data-page-loader]");
+const pageLoaderLabel = pageLoader ? pageLoader.querySelector("[data-page-loader-label]") : null;
 const themeCookiePath = themeSelect && themeSelect.dataset.themeCookiePath
     ? themeSelect.dataset.themeCookiePath
     : (themeSettings.cookiePath || "/");
@@ -20,6 +22,135 @@ const themeStorageKey = themeSelect && themeSelect.dataset.themeStorageKey
 const systemThemeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
 let applyThemeSelection = null;
+let pageLoaderShownAt = pageLoader ? Date.now() : 0;
+let pageLoaderHideTimer = 0;
+
+/**
+ * Applies the current page loader state.
+ */
+const setPageLoaderState = (visible, label = "") => {
+    if (!pageLoader) {
+        return;
+    }
+
+    if (label && pageLoaderLabel) {
+        pageLoaderLabel.textContent = label;
+    }
+
+    if (visible) {
+        pageLoaderShownAt = Date.now();
+    }
+
+    pageLoader.dataset.loaderState = visible ? "visible" : "hidden";
+    pageLoader.setAttribute("aria-hidden", visible ? "false" : "true");
+    body.classList.toggle("is-page-loading", visible);
+};
+
+/**
+ * Shows the page loader.
+ */
+const showPageLoader = (label = "Inhalte werden geladen...") => {
+    window.clearTimeout(pageLoaderHideTimer);
+    setPageLoaderState(true, label);
+};
+
+/**
+ * Hides the page loader while preserving a short minimum display time.
+ */
+const hidePageLoader = ({ immediate = false } = {}) => {
+    if (!pageLoader) {
+        return;
+    }
+
+    window.clearTimeout(pageLoaderHideTimer);
+    const remaining = immediate ? 0 : Math.max(0, 180 - (Date.now() - pageLoaderShownAt));
+    pageLoaderHideTimer = window.setTimeout(() => {
+        setPageLoaderState(false);
+    }, remaining);
+};
+
+window.CMSPageLoader = {
+    show: showPageLoader,
+    hide: hidePageLoader,
+};
+
+if (pageLoader) {
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            hidePageLoader();
+        });
+    });
+
+    window.addEventListener("load", () => {
+        hidePageLoader({ immediate: true });
+    }, { once: true });
+
+    window.addEventListener("pageshow", () => {
+        hidePageLoader({ immediate: true });
+    });
+
+    document.addEventListener("click", (event) => {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+            return;
+        }
+
+        const clickTarget = event.target;
+        if (!(clickTarget instanceof Element)) {
+            return;
+        }
+
+        const link = clickTarget.closest("a[href]");
+        if (!link || link.dataset.noPageLoader !== undefined || link.hasAttribute("download")) {
+            return;
+        }
+
+        const href = link.getAttribute("href") || "";
+        if (href === "" || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("javascript:")) {
+            return;
+        }
+
+        if (link.target && link.target.toLowerCase() !== "_self") {
+            return;
+        }
+
+        let targetUrl;
+        try {
+            targetUrl = new URL(link.href, window.location.href);
+        } catch (error) {
+            return;
+        }
+
+        if (targetUrl.origin !== window.location.origin) {
+            return;
+        }
+
+        if (targetUrl.pathname === window.location.pathname
+            && targetUrl.search === window.location.search
+            && targetUrl.hash !== ""
+        ) {
+            return;
+        }
+
+        showPageLoader(link.dataset.loadingLabel || "Inhalte werden geladen...");
+    });
+
+    document.addEventListener("submit", (event) => {
+        if (event.defaultPrevented) {
+            return;
+        }
+
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement)) {
+            return;
+        }
+
+        if ((form.target || "").toLowerCase() === "_blank" || form.method.toLowerCase() === "dialog") {
+            return;
+        }
+
+        showPageLoader(form.dataset.loadingLabel || "Inhalte werden geladen...");
+    });
+}
 
 if (themeSelect) {
     const themeOptions = themeSettings.themeConfig && typeof themeSettings.themeConfig === "object"
@@ -156,6 +287,7 @@ if (themeSelect) {
             document.cookie = `${encodeURIComponent(themeStorageKey)}=${encodeURIComponent(normalizedTheme)}; path=${themeCookiePath}; max-age=31536000; samesite=lax`;
 
             if (previousLayout !== resolvedLayout || shouldReloadForThemeAssets(previousResolvedTheme, resolvedTheme)) {
+                showPageLoader("Theme wird geladen...");
                 window.location.reload();
             }
         }
@@ -188,6 +320,7 @@ if (themeSelect) {
     if (serverThemeMismatch || serverResolvedMismatch || serverLayoutMismatch) {
         document.cookie = `${encodeURIComponent(themeStorageKey)}=${encodeURIComponent(initialTheme)}; path=${themeCookiePath}; max-age=31536000; samesite=lax`;
         if (serverLayoutMismatch || shouldReloadForThemeAssets(serverResolvedTheme, resolvedThemeAfterInit)) {
+            showPageLoader("Theme wird geladen...");
             window.location.reload();
         }
     }
@@ -207,6 +340,7 @@ if (themeSelect) {
                 applyThemeSelection("system");
                 if ((root.dataset.themeLayout || "folio") !== previousLayout
                     || shouldReloadForThemeAssets(previousResolvedTheme, root.dataset.themeResolved || resolveTheme("system"))) {
+                    showPageLoader("Theme wird geladen...");
                     window.location.reload();
                 }
             }

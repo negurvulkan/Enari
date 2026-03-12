@@ -102,6 +102,10 @@ body {
     line-height: 1.65;
 }
 
+body.is-page-loading {
+    overflow: hidden;
+}
+
 a {
     color: var(--accent);
 }
@@ -109,6 +113,202 @@ a {
 code,
 pre {
     font-family: var(--font-mono);
+}
+
+.theme-loader {
+    --theme-loader-overlay: color-mix(in srgb, var(--bg, #0b1220) 84%, black 16%);
+    --theme-loader-panel-bg: color-mix(in srgb, var(--panel-strong, rgba(255, 255, 255, 0.94)) 90%, transparent);
+    --theme-loader-panel-border: color-mix(in srgb, var(--line, rgba(255, 255, 255, 0.14)) 88%, transparent);
+    --theme-loader-text: var(--text, #eef4ff);
+    --theme-loader-muted: var(--muted, #97a8c2);
+    --theme-loader-accent: var(--accent, #7d4d28);
+    --theme-loader-accent-soft: var(--accent-soft, #d6b184);
+    --theme-loader-core: linear-gradient(135deg, var(--theme-loader-accent), var(--theme-loader-accent-soft));
+    --theme-loader-core-shadow: color-mix(in srgb, var(--theme-loader-accent) 42%, transparent);
+    --theme-loader-stage-bg:
+        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--theme-loader-accent-soft) 20%, transparent), transparent 62%),
+        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--theme-loader-accent) 10%, transparent), transparent 82%);
+    --theme-loader-ring-border: color-mix(in srgb, var(--theme-loader-accent) 34%, transparent);
+    --theme-loader-ring-inner-border: color-mix(in srgb, var(--theme-loader-accent-soft) 42%, transparent);
+    --theme-loader-beam: linear-gradient(90deg, transparent, color-mix(in srgb, var(--theme-loader-accent-soft) 92%, white 8%), transparent);
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    background:
+        radial-gradient(circle at top, color-mix(in srgb, var(--theme-loader-accent) 16%, transparent), transparent 28rem),
+        radial-gradient(circle at bottom, color-mix(in srgb, var(--theme-loader-accent-soft) 12%, transparent), transparent 34rem),
+        var(--theme-loader-overlay);
+    backdrop-filter: blur(18px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 180ms ease, visibility 0s linear 180ms;
+    z-index: 140;
+}
+
+.theme-loader[data-loader-state="visible"] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition-delay: 0s;
+}
+
+.theme-loader__panel {
+    display: grid;
+    justify-items: center;
+    gap: 0.9rem;
+    width: min(20rem, 100%);
+    padding: 1.35rem 1.35rem 1.15rem;
+    border: 1px solid var(--theme-loader-panel-border);
+    border-radius: calc(var(--radius, 20px) + 0.35rem);
+    background: var(--theme-loader-panel-bg);
+    box-shadow: 0 1.5rem 4rem color-mix(in srgb, var(--theme-loader-accent) 16%, rgba(0, 0, 0, 0.28));
+    text-align: center;
+}
+
+.theme-loader__eyebrow,
+.theme-loader__label {
+    margin: 0;
+}
+
+.theme-loader__eyebrow {
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    color: var(--theme-loader-muted);
+}
+
+.theme-loader__label {
+    color: var(--theme-loader-text);
+    font-family: var(--font-display, var(--font-body));
+    font-size: 1rem;
+}
+
+.theme-loader__stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: min(7rem, 32vw);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--theme-loader-stage-bg);
+    isolation: isolate;
+    overflow: hidden;
+}
+
+.theme-loader__stage::before,
+.theme-loader__stage::after {
+    content: "";
+    position: absolute;
+    inset: 9%;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.theme-loader__stage::before {
+    border: 1px solid color-mix(in srgb, var(--theme-loader-accent) 18%, transparent);
+    opacity: 0.8;
+}
+
+.theme-loader__stage::after {
+    inset: 22%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--theme-loader-accent-soft) 22%, transparent), transparent 72%);
+    filter: blur(12px);
+    opacity: 0.68;
+}
+
+.theme-loader__ring,
+.theme-loader__beam,
+.theme-loader__core {
+    position: absolute;
+}
+
+.theme-loader__ring {
+    inset: 6%;
+    border: 1px solid var(--theme-loader-ring-border);
+    border-radius: 50%;
+    animation: theme-loader-rotate 1.9s linear infinite;
+}
+
+.theme-loader__ring--inner {
+    inset: 24%;
+    border-color: var(--theme-loader-ring-inner-border);
+    animation-direction: reverse;
+    animation-duration: 1.45s;
+}
+
+.theme-loader__beam {
+    width: 82%;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--theme-loader-beam);
+    transform-origin: center;
+    animation: theme-loader-sweep 2.2s ease-in-out infinite;
+    opacity: 0.8;
+}
+
+.theme-loader__beam--secondary {
+    transform: rotate(90deg);
+    animation-duration: 2.8s;
+    opacity: 0.42;
+}
+
+.theme-loader__core {
+    width: 28%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--theme-loader-core);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--theme-loader-accent-soft) 28%, transparent),
+        0 0 1.6rem var(--theme-loader-core-shadow);
+    animation: theme-loader-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes theme-loader-rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes theme-loader-sweep {
+    0%,
+    100% {
+        transform: rotate(0deg) scaleX(0.74);
+        opacity: 0.34;
+    }
+
+    50% {
+        transform: rotate(180deg) scaleX(1);
+        opacity: 0.94;
+    }
+}
+
+@keyframes theme-loader-pulse {
+    0%,
+    100% {
+        transform: scale(0.86);
+    }
+
+    50% {
+        transform: scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .theme-loader,
+    .theme-loader *,
+    .theme-loader::before,
+    .theme-loader::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+    }
 }
 
 .shell {

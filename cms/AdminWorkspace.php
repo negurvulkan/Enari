@@ -256,6 +256,8 @@ final class AdminWorkspace
             return true;
         }
 
+        $this->liftExecutionTimeLimit();
+
         if ($adminPath === 'login') {
             if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST') {
                 $this->handleLogin();
@@ -548,6 +550,10 @@ final class AdminWorkspace
         $bootstrapJson = json_encode($bootstrap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $title = $this->escapeHtml((string) ($this->config['title'] ?? 'CMS Workspace'));
         $versionLabel = $this->escapeHtml((string) ($this->config['versionLabel'] ?? 'v1.2'));
+        $previewTheme = $this->normalizeThemeKey((string) ($this->config['previewTheme'] ?? 'parchment'));
+        if ($previewTheme === '') {
+            $previewTheme = 'parchment';
+        }
         $logoutForm = '';
         if ($this->hasConfiguredCredentials()) {
             $logoutForm = '<form method="post" action="' . $this->escapeAttribute($this->adminUrl('logout')) . '" class="admin-header__logout">'
@@ -557,15 +563,31 @@ final class AdminWorkspace
         }
 
         header('Content-Type: text/html; charset=utf-8');
-        echo '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">';
+        echo '<!DOCTYPE html><html lang="de" data-theme-resolved="' . $this->escapeAttribute($previewTheme) . '"><head><meta charset="utf-8">';
         echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
         echo '<title>' . $title . '</title>';
         echo '<link rel="stylesheet" href="' . $this->escapeAttribute($this->repository->assetUrl('assets/vendor/toastui-editor/toastui-editor.min.css')) . '">';
         echo '<link rel="stylesheet" href="' . $this->escapeAttribute($this->repository->assetUrl('assets/vendor/toastui-editor/theme/toastui-editor-dark.min.css')) . '">';
         echo '<link rel="stylesheet" href="' . $this->escapeAttribute($this->versionedAdminAssetUrl('assets/admin/admin.css')) . '">';
-        echo '</head><body class="admin-app-page">';
+        $themeLoaderPath = 'themes/' . $previewTheme . '/assets/loader.css';
+        if (is_file($this->fullPath($themeLoaderPath))) {
+            echo '<link rel="stylesheet" href="' . $this->escapeAttribute($this->repository->assetUrl($themeLoaderPath)) . '">';
+        }
+        echo '</head><body class="admin-app-page" data-theme-resolved="' . $this->escapeAttribute($previewTheme) . '">';
         echo '<a class="admin-skip-link" href="#admin-main">Zum Hauptinhalt springen</a>';
         echo '<a class="admin-skip-link" href="#admin-sidebar">Zur Dokumentliste springen</a>';
+        echo '<div class="theme-loader theme-loader--admin" data-admin-loader data-loader-state="visible" data-loader-surface="admin" aria-hidden="false">';
+        echo '<div class="theme-loader__panel" role="status" aria-live="polite" aria-atomic="true">';
+        echo '<p class="theme-loader__eyebrow">Admin Workspace</p>';
+        echo '<div class="theme-loader__stage" aria-hidden="true">';
+        echo '<span class="theme-loader__ring theme-loader__ring--outer"></span>';
+        echo '<span class="theme-loader__ring theme-loader__ring--inner"></span>';
+        echo '<span class="theme-loader__beam"></span>';
+        echo '<span class="theme-loader__beam theme-loader__beam--secondary"></span>';
+        echo '<span class="theme-loader__core"></span>';
+        echo '</div>';
+        echo '<p class="theme-loader__label" data-admin-loader-label>Arbeitsbereich wird geladen...</p>';
+        echo '</div></div>';
         echo '<div class="admin-live-region" data-admin-live role="status" aria-live="polite" aria-atomic="true"></div>';
         echo '<div class="admin-app" data-admin-app="true">';
         echo '<header class="admin-header">';
@@ -2346,8 +2368,8 @@ final class AdminWorkspace
         $documents = array_values(array_map(function (array $document): array {
             return $this->buildDocumentListItem($document);
         }, $this->sortDocumentsForAdmin($this->repository->getDocuments())));
-        $healthSummary = $this->contentValidator->validate(false);
         $selectedPath = $this->normalizePath((string) ($_GET['path'] ?? ''));
+        $stats = $this->repository->getStats();
 
         return array(
             'csrfToken' => $this->ensureCsrfToken(),
@@ -2362,7 +2384,14 @@ final class AdminWorkspace
             'uploadTargets' => $this->buildUploadTargets(),
             'git' => $this->gitWorkspace->getClientConfig(),
             'trustedLocalFallback' => !$this->hasConfiguredCredentials() && $this->isTrustedLocalRequest(),
-            'healthSummary' => is_array($healthSummary['summary'] ?? null) ? $healthSummary['summary'] : array(),
+            'healthSummary' => array(
+                'documents' => (int) ($stats['documents'] ?? count($documents)),
+                'assets' => (int) ($stats['assets'] ?? 0),
+                'errors' => 0,
+                'warnings' => 0,
+                'infos' => 0,
+                'deferred' => true,
+            ),
         );
     }
 
@@ -3595,11 +3624,58 @@ final class AdminWorkspace
             return $directRoot;
         }
 
-        $candidates = $this->findMediaRootCandidates($contentRoot);
+        $candidates = $this->findImmediateMediaRootCandidates($contentRoot);
+        if ($candidates === array()) {
+            $candidates = $this->findMediaRootCandidates($contentRoot);
+        }
         $resolvedRoot = $candidates !== array() ? $candidates[0] : $directRoot;
         $this->mediaRootsByLocale[$locale] = $resolvedRoot;
 
         return $resolvedRoot;
+    }
+
+    /**
+     * Looks for locale media roots one level below the configured content root.
+     *
+     * @return string[]
+     */
+    private function findImmediateMediaRootCandidates(string $contentRoot): array
+    {
+        $contentRoot = $this->normalizePath($contentRoot);
+        if ($contentRoot === '') {
+            return array();
+        }
+
+        $fullContentRoot = $this->fullPath($contentRoot);
+        if (!is_dir($fullContentRoot)) {
+            return array();
+        }
+
+        $candidates = array();
+        try {
+            $iterator = new DirectoryIterator($fullContentRoot);
+        } catch (UnexpectedValueException $exception) {
+            return array();
+        }
+
+        /** @var DirectoryIterator $entry */
+        foreach ($iterator as $entry) {
+            if ($entry->isDot() || !$entry->isDir()) {
+                continue;
+            }
+
+            $candidate = $this->normalizePath($contentRoot . '/' . $entry->getFilename() . '/99_Medien');
+            if (is_dir($this->fullPath($candidate))) {
+                $candidates[$candidate] = $candidate;
+            }
+        }
+
+        $candidates = array_values($candidates);
+        usort($candidates, static function (string $left, string $right): int {
+            return strnatcasecmp($left, $right);
+        });
+
+        return $candidates;
     }
 
     /**
@@ -3874,24 +3950,8 @@ final class AdminWorkspace
         }
 
         $referenceTargets = array_keys($currentFiles);
-        foreach (array_keys($childDirectories) as $childDirectoryPath) {
-            foreach (array_keys($filesByPath) as $filePath) {
-                if ($this->pathIsWithin($filePath, $childDirectoryPath)) {
-                    $referenceTargets[] = $filePath;
-                }
-            }
-        }
-
-        if ($selection !== '') {
-            if (isset($filesByPath[$selection])) {
-                $referenceTargets[] = $selection;
-            } elseif (isset($directoriesByPath[$selection])) {
-                foreach (array_keys($filesByPath) as $filePath) {
-                    if ($this->pathIsWithin($filePath, $selection)) {
-                        $referenceTargets[] = $filePath;
-                    }
-                }
-            }
+        if ($selection !== '' && isset($filesByPath[$selection])) {
+            $referenceTargets[] = $selection;
         }
 
         $referenceMap = $this->buildMediaReferenceMap(array_values(array_unique($referenceTargets)));
@@ -3957,9 +4017,14 @@ final class AdminWorkspace
             $selectionEntry = $this->buildMediaDirectoryEntry($directoriesByPath[$selection], $filesByPath, $referenceMap);
         }
 
+        $assetEntries = $currentFiles;
+        if ($selection !== '' && isset($filesByPath[$selection]) && !isset($assetEntries[$selection])) {
+            $assetEntries[$selection] = $filesByPath[$selection];
+        }
+
         $assets = array_values(array_map(function (array $entry) use ($currentPath): array {
             return $this->buildAssetPayload($entry, $currentPath);
-        }, array_values($filesByPath)));
+        }, array_values($assetEntries)));
 
         return array(
             'targets' => array_values(array_map(function (array $entry): array {
@@ -5030,6 +5095,16 @@ final class AdminWorkspace
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * Removes PHP execution limits for long-running admin requests on local dev servers.
+     */
+    private function liftExecutionTimeLimit(): void
+    {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
     }
 
     /**

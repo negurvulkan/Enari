@@ -130,7 +130,7 @@ translation_key: service.accessibility
 This page describes accessibility commitments for the site.
 ```
 
-Config registration pattern in `cms/site.config.php`:
+Config registration pattern in `site.config.php`:
 
 ```php
 array(

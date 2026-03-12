@@ -12,4 +12,4 @@ Add your provider details, contact information, and any mandatory legal disclosu
 
 ## Integration Note
 
-The link placement for this page is configured in `cms/site.config.php`, where you can also adjust the slug and additional footer or sidebar placements.
+The link placement for this page is configured in `site.config.php`, where you can also adjust the slug and additional footer or sidebar placements.

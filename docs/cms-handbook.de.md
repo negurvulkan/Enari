@@ -92,7 +92,7 @@ Wichtige Felder:
 
 ## 4. Mehrsprachigkeit richtig nutzen
 
-Mehrsprachigkeit ist locale-aware und basiert auf getrennten Content-Roots pro Sprache. Fuer neue Instanzen liefert das Repo [cms/site.config.sample.php](/cms/site.config.sample.php); die lokale Runtime-Datei liegt danach unter `cms/site.config.php`.
+Mehrsprachigkeit ist locale-aware und basiert auf getrennten Content-Roots pro Sprache. Fuer neue Instanzen liefert das Repo [site.config.sample.php](/site.config.sample.php); die lokale Runtime-Datei liegt danach unter `site.config.php`.
 
 Beispiel:
 
@@ -130,7 +130,7 @@ Wenn beide Seiten denselben Bereich beschreiben, brauchen sie denselben `transla
 ### Unterschied zwischen `translation_key` und `translationKey`
 
 - `translation_key` wird im Markdown-Frontmatter normaler Inhalte verwendet.
-- `translationKey` wird in `cms/site.config.php` fuer konfigurierte Seiten wie Home oder Standalone-Pages verwendet.
+- `translationKey` wird in `site.config.php` fuer konfigurierte Seiten wie Home oder Standalone-Pages verwendet.
 
 ### Fallback verstehen
 
@@ -150,7 +150,7 @@ Typische Beispiele:
 Wichtig:
 
 - Eine Datei in `cms/pages/` allein macht die Seite noch nicht erreichbar.
-- Die Seite muss zusaetzlich in der lokalen `cms/site.config.php` eingetragen werden.
+- Die Seite muss zusaetzlich in der lokalen `site.config.php` eingetragen werden.
 - Slug, Position in Footer oder Sidebar und sprachspezifische Varianten kommen aus der Konfiguration, nicht aus der Ordnerstruktur.
 
 ## 6. Markdown-Dialekt und Erweiterungen

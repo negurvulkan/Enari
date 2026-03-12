@@ -1,0 +1,25 @@
+:root[data-theme-resolved="tide"] .theme-loader {
+    --theme-loader-overlay: rgba(223, 239, 235, 0.86);
+    --theme-loader-panel-bg: rgba(243, 250, 248, 0.94);
+    --theme-loader-panel-border: rgba(35, 109, 118, 0.14);
+    --theme-loader-text: #1f3439;
+    --theme-loader-muted: #5d7a81;
+    --theme-loader-accent: #236d76;
+    --theme-loader-accent-soft: #8dc7bf;
+    --theme-loader-core-shadow: rgba(35, 109, 118, 0.2);
+}
+
+:root[data-theme-resolved="tide"] .theme-loader__stage {
+    background:
+        radial-gradient(circle at 50% 50%, rgba(141, 199, 191, 0.2), transparent 64%),
+        repeating-linear-gradient(180deg, rgba(35, 109, 118, 0.06) 0 6px, transparent 6px 14px);
+}
+
+:root[data-theme-resolved="tide"] .theme-loader__ring {
+    border-radius: 42% 58% 52% 48%;
+}
+
+:root[data-theme-resolved="tide"] .theme-loader__beam {
+    height: 3px;
+    border-radius: 999px;
+}

@@ -24,7 +24,7 @@ Dieses Repository ist als oeffentlich nutzbares CMS-Repo gedacht. Es enthaelt de
 1. Lege deine lokale Runtime-Konfiguration an:
 
 ```powershell
-Copy-Item cms/site.config.sample.php cms/site.config.php
+Copy-Item site.config.sample.php site.config.php
 ```
 
 2. Pruefe die Config:
@@ -56,7 +56,7 @@ Die Service-Seiten unter `cms/pages/` bleiben bewusst generisch und koennen pro 
 
 ## Lokaler Content-Bestand
 
-Wenn du das CMS mit eigenem, nicht oeffentlichem Bestand betreibst, definierst du den Ort deiner Inhalte allein ueber `cms/site.config.php`. Dort konfigurierst du die lokalen Content-Roots, Homepages und Instanz-Einstellungen passend zu deinem Arbeitsstand.
+Wenn du das CMS mit eigenem, nicht oeffentlichem Bestand betreibst, definierst du den Ort deiner Inhalte allein ueber `site.config.php`. Dort konfigurierst du die lokalen Content-Roots, Homepages und Instanz-Einstellungen passend zu deinem Arbeitsstand.
 
 Weitere Hinweise fuer den Public-vs-Private-Workflow und einen spaeteren History-Cleanup stehen in [docs/public-repo-workflow.md](docs/public-repo-workflow.md).
 
@@ -92,8 +92,8 @@ themes/
 
 Wichtige Pfade:
 
-- `cms/site.config.sample.php`: versionierte Vorlage fuer neue Instanzen
-- `cms/site.config.php`: lokale Runtime-Konfiguration, nicht versioniert
+- `site.config.sample.php`: versionierte Vorlage fuer neue Instanzen
+- `site.config.php`: lokale Runtime-Konfiguration, nicht versioniert
 - `content/`: zweisprachiger Demo-Bestand fuer das oeffentliche Repo
 - `cms/pages/`: Home- und Service-Seiten ausserhalb der normalen Ordnernavigation
 - `config/schema/`: Typen, Felder und Relationen

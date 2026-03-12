@@ -12,4 +12,4 @@ Ergaenze hier die fuer dein Projekt passende Datenschutzerklaerung. Der aktuelle
 
 ## Hinweis zur Einbindung
 
-Die Zuordnung erfolgt in `cms/site.config.php`. Dort kannst du weitere Policy-Seiten auf die gleiche Weise registrieren.
+Die Zuordnung erfolgt in `site.config.php`. Dort kannst du weitere Policy-Seiten auf die gleiche Weise registrieren.

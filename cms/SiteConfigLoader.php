@@ -109,8 +109,8 @@ final class SiteConfigLoader
         $lines = array(
             'Die lokale CMS-Konfiguration ist nicht einsatzbereit.',
             '',
-            'Konfiguration: ' . self::normalizeRelativePath((string) ($report['configPath'] ?? 'cms/site.config.php')),
-            'Vorlage: ' . self::normalizeRelativePath((string) ($report['samplePath'] ?? 'cms/site.config.sample.php')),
+            'Konfiguration: ' . self::normalizeRelativePath((string) ($report['configPath'] ?? 'site.config.php')),
+            'Vorlage: ' . self::normalizeRelativePath((string) ($report['samplePath'] ?? 'site.config.sample.php')),
         );
 
         foreach ((array) ($report['errors'] ?? array()) as $error) {
@@ -125,7 +125,17 @@ final class SiteConfigLoader
      */
     public static function configPath(string $basePath): string
     {
-        return rtrim(str_replace('\\', '/', $basePath), '/') . '/cms/site.config.php';
+        $rootPath = rtrim(str_replace('\\', '/', $basePath), '/') . '/site.config.php';
+        if (is_file($rootPath)) {
+            return $rootPath;
+        }
+
+        $legacyPath = rtrim(str_replace('\\', '/', $basePath), '/') . '/cms/site.config.php';
+        if (is_file($legacyPath)) {
+            return $legacyPath;
+        }
+
+        return $rootPath;
     }
 
     /**
@@ -133,7 +143,7 @@ final class SiteConfigLoader
      */
     public static function samplePath(string $basePath): string
     {
-        return rtrim(str_replace('\\', '/', $basePath), '/') . '/cms/site.config.sample.php';
+        return rtrim(str_replace('\\', '/', $basePath), '/') . '/site.config.sample.php';
     }
 
     /**

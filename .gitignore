@@ -15,6 +15,7 @@ cache/smarty/**
 __pycache__/
 
 # Local instance config
+site.config.php
 cms/site.config.php
 
 # Local private content

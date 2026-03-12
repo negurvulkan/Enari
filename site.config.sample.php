@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// Copy this file to cms/site.config.php and adjust the local runtime settings.
+// Copy this file to site.config.php and adjust the local runtime settings.
 
 return array(
     'content' => array(
@@ -47,7 +47,7 @@ return array(
                     'notFoundText' => 'The requested Markdown page could not be resolved. The available archive sections are listed below.',
                     'missingHomeEyebrow' => 'Home',
                     'missingHomeTitle' => 'Home page not configured',
-                    'missingHomeText' => 'Add a Markdown file and configure it in cms/site.config.php under homePage.source.',
+                    'missingHomeText' => 'Add a Markdown file and configure it in site.config.php under homePage.source.',
                     'currentSectionEyebrow' => 'In this section',
                     'currentSectionFallbackTitle' => 'Subpages',
                     'emptyOverviewText' => 'This overview file is currently empty, but the child pages for this section are already available.',

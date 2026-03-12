@@ -92,7 +92,7 @@ Important fields:
 
 ## 4. Using Multilingual Content Correctly
 
-Multilingual support is locale-aware and based on separate content roots per language. New instances start from [cms/site.config.sample.php](/cms/site.config.sample.php), while the local runtime file lives at `cms/site.config.php`.
+Multilingual support is locale-aware and based on separate content roots per language. New instances start from [site.config.sample.php](/site.config.sample.php), while the local runtime file lives at `site.config.php`.
 
 Example:
 
@@ -130,7 +130,7 @@ If both pages describe the same concept, they must share the same `translation_k
 ### `translation_key` vs `translationKey`
 
 - `translation_key` is used in Markdown frontmatter for normal content.
-- `translationKey` is used in `cms/site.config.php` for configured pages such as the home page or standalone pages.
+- `translationKey` is used in `site.config.php` for configured pages such as the home page or standalone pages.
 
 ### Understanding Fallback
 
@@ -150,7 +150,7 @@ Typical examples:
 Important:
 
 - A file inside `cms/pages/` is not enough on its own.
-- The page also has to be registered in the local `cms/site.config.php`.
+- The page also has to be registered in the local `site.config.php`.
 - The slug, footer/sidebar placement, and locale-specific variants come from configuration, not from folder structure.
 
 ## 6. Markdown Dialect and Extensions

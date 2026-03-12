@@ -1,0 +1,32 @@
+:root[data-theme-resolved="compendium"] .theme-loader {
+    --theme-loader-overlay: rgba(236, 241, 249, 0.86);
+    --theme-loader-panel-bg: rgba(255, 255, 255, 0.92);
+    --theme-loader-panel-border: rgba(50, 103, 214, 0.14);
+    --theme-loader-text: #1a2945;
+    --theme-loader-muted: #6880aa;
+    --theme-loader-accent: #3267d6;
+    --theme-loader-accent-soft: #85a7ff;
+    --theme-loader-core-shadow: rgba(50, 103, 214, 0.22);
+}
+
+:root[data-theme-resolved="compendium"] .theme-loader__stage,
+:root[data-theme-resolved="compendium"] .theme-loader__stage::before,
+:root[data-theme-resolved="compendium"] .theme-loader__ring {
+    border-radius: 24%;
+}
+
+:root[data-theme-resolved="compendium"] .theme-loader__stage {
+    background:
+        linear-gradient(rgba(50, 103, 214, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(50, 103, 214, 0.07) 1px, transparent 1px),
+        radial-gradient(circle at 50% 50%, rgba(133, 167, 255, 0.18), transparent 62%);
+    background-size: 100% 1rem, 1rem 100%, auto;
+}
+
+:root[data-theme-resolved="compendium"] .theme-loader__ring--outer {
+    border-width: 2px;
+}
+
+:root[data-theme-resolved="compendium"] .theme-loader__core {
+    border-radius: 28%;
+}

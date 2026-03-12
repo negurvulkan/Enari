@@ -25,4 +25,4 @@ Der Hauptbereich dieses Repos liegt im [[demo.archive|Demo-Archiv]]. Dort findes
 
 ## Private Inhalte
 
-Produktiver oder privater Lore-Bestand ist bewusst nicht Teil dieses oeffentlichen Repos. Fuer lokale Inhalte nutze eine eigene `cms/site.config.php` und konfiguriere dort den Pfad zu deinem lokalen Content-Bestand.
+Produktiver oder privater Lore-Bestand ist bewusst nicht Teil dieses oeffentlichen Repos. Fuer lokale Inhalte nutze eine eigene `site.config.php` und konfiguriere dort den Pfad zu deinem lokalen Content-Bestand.

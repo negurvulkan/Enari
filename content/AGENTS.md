@@ -6,7 +6,7 @@ This guide applies to normal archive content inside `content/`.
 
 Use `content/` for directory overviews, regular knowledge pages, localized content trees, and media-adjacent documentation that should appear in the archive navigation.
 
-Do not use this directory for standalone legal/service pages. Those belong in `cms/pages/` and must be wired through `cms/site.config.php`.
+Do not use this directory for standalone legal/service pages. Those belong in `cms/pages/` and must be wired through `site.config.php`.
 
 ## Overview Pages vs Leaf Pages
 
