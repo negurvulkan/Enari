@@ -1,0 +1,46 @@
+relations:
+  - id: lives_on
+    label: Lives On
+    inverse_label: Home To
+    from_types:
+      - species
+      - institution
+    to_types:
+      - planet
+    cardinality: many-to-one
+    color: "#58d8ff"
+    style: solid
+
+  - id: member_of
+    label: Member Of
+    inverse_label: Has Member
+    from_types:
+      - species
+      - institution
+    to_types:
+      - institution
+    cardinality: many-to-many
+    color: "#f2c46f"
+    style: solid
+
+  - id: governs
+    label: Governs
+    inverse_label: Governed By
+    from_types:
+      - institution
+    to_types:
+      - planet
+    cardinality: one-to-many
+    color: "#7fa8ff"
+    style: solid
+
+  - id: precedes
+    label: Precedes
+    inverse_label: Follows
+    from_types:
+      - event
+    to_types:
+      - event
+    cardinality: one-to-many
+    color: "#ef83ff"
+    style: dashed

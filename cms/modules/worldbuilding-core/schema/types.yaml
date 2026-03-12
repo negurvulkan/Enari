@@ -1,0 +1,18 @@
+types:
+  - id: note
+    label: Note
+    icon: chronicle
+    color: "#8aa4b2"
+    description: Freie Wissensnotizen und redaktionelle Marker.
+    template: entity-default
+    groups:
+      - annotation
+    fields:
+      note_kind:
+        type: select
+        label: Note Kind
+        group: identity
+        options:
+          - memo
+          - warning
+          - glossary

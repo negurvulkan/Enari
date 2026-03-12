@@ -1,0 +1,192 @@
+<?php
+
+declare(strict_types=1);
+
+return array(
+    'content' => array(
+        'root' => 'content/de',
+    ),
+    'i18n' => array(
+        'defaultLocale' => 'de',
+        'fallbackToDefault' => true,
+        'locales' => array(
+            'de' => array(
+                'label' => 'Deutsch',
+                'content' => array(
+                    'root' => 'content/de',
+                ),
+            ),
+            'en' => array(
+                'label' => 'English',
+                'content' => array(
+                    'root' => 'content/en',
+                ),
+                'site' => array(
+                    'lang' => 'en',
+                    'brandEyebrow' => 'Worldbuilding in Markdown',
+                    'defaultLead' => 'A file-based archive for the Enari setting.',
+                ),
+                'ui' => array(
+                    'tocTitle' => 'On this page',
+                    'navSearchLabel' => 'Filter navigation',
+                    'navSearchPlaceholder' => 'e.g. Veyrathi, culture, biology',
+                    'navigationAriaLabel' => 'Content navigation',
+                    'menuLabel' => 'Menu',
+                    'directoryActionLabel' => 'Open',
+                    'themeEyebrow' => 'Appearance',
+                    'themeHint' => 'Follows your system light or dark mode.',
+                    'localeEyebrow' => 'Language',
+                    'localeLabel' => 'Language',
+                    'localeFallbackLabel' => 'Fallback',
+                    'statsDocumentsLabel' => 'Documents',
+                    'statsDirectoriesLabel' => 'Directories',
+                    'statsAssetsLabel' => 'Media',
+                    'notFoundTitle' => 'Page not found',
+                    'notFoundText' => 'The requested Markdown page could not be resolved. The available archive sections are listed below.',
+                    'missingHomeEyebrow' => 'Home',
+                    'missingHomeTitle' => 'Home page not configured',
+                    'missingHomeText' => 'Add a Markdown file and configure it in cms/site.config.php under homePage.source.',
+                    'currentSectionEyebrow' => 'In this section',
+                    'currentSectionFallbackTitle' => 'Subpages',
+                    'emptyOverviewText' => 'This overview file is currently empty, but the child pages for this section are already available.',
+                    'footerEyebrow' => 'Footer',
+                    'footerNavAriaLabel' => 'Service',
+                ),
+                'homePage' => array(
+                    'source' => 'cms/pages/startseite.en.md',
+                    'translationKey' => 'site.home',
+                ),
+                'standalonePages' => array(
+                    array(
+                        'source' => 'cms/pages/impressum.en.md',
+                        'slug' => 'service/impressum',
+                        'translationKey' => 'service.impressum',
+                    ),
+                    array(
+                        'source' => 'cms/pages/datenschutz.en.md',
+                        'slug' => 'service/datenschutz',
+                        'translationKey' => 'service.datenschutz',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'schema' => array(
+        'path' => 'config/schema',
+        'paths' => array(
+            'config/schema',
+        ),
+        'typesFiles' => array(),
+        'relationsFiles' => array(),
+        'typesFile' => 'types.yaml',
+        'relationsFile' => 'relations.yaml',
+        'templatesPath' => 'cms/type-templates',
+    ),
+    'modules' => array(
+        'enabled' => true,
+        'assetRoutePrefix' => 'module-assets',
+        'definitions' => array(
+            array(
+                'id' => 'worldbuilding-core',
+                'bootstrap' => 'cms/modules/worldbuilding-core/module.php',
+                'enabled' => true,
+            ),
+        ),
+    ),
+    'admin' => array(
+        'enabled' => true,
+        'title' => 'Enari Admin Workspace',
+        'username' => getenv('CMS_ADMIN_USERNAME') !== false ? (string) getenv('CMS_ADMIN_USERNAME') : 'admin',
+        'password' => getenv('CMS_ADMIN_PASSWORD') !== false ? (string) getenv('CMS_ADMIN_PASSWORD') : '',
+        'passwordHash' => getenv('CMS_ADMIN_PASSWORD_HASH') !== false ? (string) getenv('CMS_ADMIN_PASSWORD_HASH') : '',
+        'sessionCookie' => 'enari-admin',
+        'trustedLocalFallback' => true,
+        'historyRoot' => 'cache/admin-history',
+        'previewTheme' => 'parchment',
+        'git' => array(
+            'enabled' => true,
+            'repositoryRoot' => '.',
+            'remoteName' => 'origin',
+            'defaultBranch' => 'main',
+            'allowRemoteSetup' => true,
+            'allowPull' => true,
+            'allowPush' => true,
+            'authorName' => getenv('CMS_GIT_AUTHOR_NAME') !== false ? (string) getenv('CMS_GIT_AUTHOR_NAME') : 'Enari CMS',
+            'authorEmail' => getenv('CMS_GIT_AUTHOR_EMAIL') !== false ? (string) getenv('CMS_GIT_AUTHOR_EMAIL') : 'cms@example.invalid',
+            'mergeSessionRoot' => 'cache/admin-git-merge',
+        ),
+    ),
+    'site' => array(
+        'key' => 'enari-languages',
+        'lang' => 'de',
+        'name' => 'Enari CMS',
+        'brandEyebrow' => 'Worldbuildung in Markdown',
+        'brandTitle' => 'WorldMesh',
+        'mastheadEyebrow' => '',
+        'defaultLead' => 'Alles ueber die interessanteste Spezies im Universum',
+    ),
+    'homePage' => array(
+        'source' => 'cms/pages/startseite.md',
+        'translationKey' => 'site.home',
+    ),
+    'ui' => array(
+        'navSearchLabel' => 'Navigation filtern',
+        'navSearchPlaceholder' => 'z. B. Enu, Kultur, Veyrathi',
+        'menuLabel' => 'Menue',
+        'footerEyebrow' => 'Footer',
+        'footerNavAriaLabel' => 'Service',
+        'localeEyebrow' => 'Sprache',
+        'localeLabel' => 'Sprache',
+        'localeFallbackLabel' => 'Fallback',
+    ),
+    'integrations' => array(
+        'mermaid' => array(
+            'enabled' => true,
+            'scriptPath' => 'assets/vendor/mermaid/mermaid.min.js',
+            'securityLevel' => 'antiscript',
+            'options' => array(
+                'flowchart' => array(
+                    'useMaxWidth' => true,
+                    'htmlLabels' => true,
+                ),
+                'sequence' => array(
+                    'useMaxWidth' => true,
+                    'wrap' => true,
+                ),
+            ),
+        ),
+        'cytoscape' => array(
+            'enabled' => true,
+            'scriptPath' => 'assets/vendor/cytoscape/cytoscape.min.js',
+            'options' => array(
+                'minZoom' => 0.35,
+                'maxZoom' => 2.8,
+            ),
+        ),
+    ),
+    'standalonePages' => array(
+        array(
+            'source' => 'cms/pages/impressum.md',
+            'slug' => 'service/impressum',
+            'translationKey' => 'service.impressum',
+        ),
+        array(
+            'source' => 'cms/pages/datenschutz.md',
+            'slug' => 'service/datenschutz',
+            'translationKey' => 'service.datenschutz',
+        ),
+    ),
+    'sidebarSections' => array(
+    ),
+    'footer' => array(
+        'text' => 'Copyright 2026',
+        'links' => array(
+            array(
+                'page' => 'service/impressum',
+            ),
+            array(
+                'page' => 'service/datenschutz',
+            ),
+        ),
+    ),
+);

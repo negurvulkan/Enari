@@ -1,0 +1,48 @@
+:root[data-theme-resolved="tide"] {
+    --bg: #e6efee;
+    --bg-strong: #d4e2e0;
+    --panel: rgba(244, 250, 249, 0.88);
+    --panel-strong: rgba(238, 247, 246, 0.96);
+    --panel-soft: rgba(240, 249, 247, 0.78);
+    --text: #203439;
+    --muted: #567076;
+    --accent: #236d76;
+    --accent-soft: #8dc7bf;
+    --line: rgba(25, 76, 80, 0.14);
+    --shadow: 0 20px 45px rgba(29, 74, 78, 0.15);
+    --bg-glow-top: rgba(123, 193, 184, 0.34);
+    --bg-glow-bottom: rgba(31, 109, 118, 0.16);
+    --bg-gradient: linear-gradient(160deg, #f2fbf9 0%, #e0f0ed 48%, #d2e5e2 100%);
+    --sidebar-gradient: linear-gradient(180deg, rgba(23, 70, 74, 0.94), rgba(17, 52, 56, 0.98));
+    --nav-active-text: #12353a;
+    --nav-active-bg: linear-gradient(135deg, #d9f1eb, #91cabd);
+    --button-gradient: linear-gradient(135deg, #236d76, #3d9291);
+    --notice-border: rgba(35, 109, 118, 0.28);
+    --hero-bg:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(245, 252, 251, 0.88)),
+        linear-gradient(140deg, rgba(122, 192, 184, 0.2), transparent 56%);
+    --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(231, 246, 243, 0.96));
+    --card-hover-border: rgba(35, 109, 118, 0.28);
+    --card-hover-shadow: 0 16px 30px rgba(28, 75, 79, 0.14);
+    --crumb-separator: rgba(32, 52, 57, 0.35);
+    --blockquote-bg: rgba(35, 109, 118, 0.08);
+    --inline-code-bg: rgba(32, 52, 57, 0.09);
+    --code-bg: #173136;
+    --code-text: #eef8f8;
+    --table-head-bg: rgba(35, 109, 118, 0.08);
+    --media-frame-border: rgba(25, 76, 80, 0.12);
+    --media-frame-bg: rgba(248, 252, 251, 0.86);
+    --media-frame-hover-shadow: 0 12px 24px rgba(28, 75, 79, 0.14);
+    --media-frame-hover-border: rgba(35, 109, 118, 0.22);
+    --media-action-border: rgba(35, 109, 118, 0.2);
+    --media-action-bg: linear-gradient(180deg, rgba(248, 252, 251, 0.96), rgba(221, 239, 235, 0.92));
+    --media-action-hover-border: rgba(35, 109, 118, 0.34);
+    --media-action-hover-shadow: 0 10px 22px rgba(28, 75, 79, 0.12);
+    --popover-bg: rgba(239, 247, 246, 0.98);
+    --popover-shadow: 0 40px 100px rgba(10, 24, 27, 0.32);
+    --popover-backdrop: rgba(15, 29, 31, 0.72);
+    --popover-close-border: rgba(35, 109, 118, 0.18);
+    --video-bg: #0f1b1e;
+    --mobile-backdrop: rgba(15, 29, 31, 0.36);
+}
+

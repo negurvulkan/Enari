@@ -1,0 +1,29 @@
+.entity-addon--species .entity-addon-panel,
+.entity-addon--planet .entity-addon-panel {
+    position: relative;
+    overflow: hidden;
+    border-color: color-mix(in srgb, var(--accent, #2b6777) 48%, transparent);
+}
+
+.entity-addon--species .entity-addon-panel::before,
+.entity-addon--planet .entity-addon-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at top right, color-mix(in srgb, var(--accent, #2b6777) 14%, transparent) 0%, transparent 42%),
+        linear-gradient(135deg, color-mix(in srgb, var(--surface-strong, #0f2430) 88%, var(--accent, #2b6777) 12%) 0%, transparent 58%);
+    pointer-events: none;
+}
+
+.entity-addon--species .entity-addon-panel > *,
+.entity-addon--planet .entity-addon-panel > * {
+    position: relative;
+    z-index: 1;
+}
+
+.entity-addon--species .entity-addon-panel__chips span,
+.entity-addon--planet .entity-addon-panel__chips span {
+    border-color: color-mix(in srgb, var(--accent, #2b6777) 28%, transparent);
+    background: color-mix(in srgb, var(--surface-strong, #0f2430) 84%, var(--accent, #2b6777) 16%);
+}

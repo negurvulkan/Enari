@@ -1,0 +1,16 @@
+relations:
+  - id: documents
+    label: Documents
+    inverse_label: Documented By
+    from_types:
+      - note
+      - institution
+    to_types:
+      - species
+      - planet
+      - institution
+      - event
+      - note
+    cardinality: many-to-many
+    color: "#44d9ff"
+    style: dashed

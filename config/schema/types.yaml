@@ -1,0 +1,169 @@
+types:
+  - id: species
+    label: Species
+    icon: dna
+    color: "#58d8ff"
+    description: Biologische oder kulturell definierte Speziesprofile.
+    template: species
+    groups:
+      - biology
+      - taxonomy
+    defaults:
+      sentient: false
+      conservation_status: stable
+    fields:
+      scientific_name:
+        type: text
+        label: Scientific Name
+        group: identity
+      homeworld:
+        type: reference
+        label: Homeworld
+        group: habitat
+      sapience_level:
+        type: number
+        label: Sapience Level
+        group: biology
+      sentient:
+        type: boolean
+        label: Sentient
+        group: biology
+      conservation_status:
+        type: select
+        label: Conservation Status
+        group: biology
+        options:
+          - value: stable
+            label: Stable
+          - value: fragile
+            label: Fragile
+          - value: threatened
+            label: Threatened
+          - value: extinct
+            label: Extinct
+      key_traits:
+        type: tags
+        label: Key Traits
+        group: biology
+      related_species:
+        type: reference-list
+        label: Related Species
+        group: relations
+
+  - id: planet
+    label: Planet
+    icon: planet
+    color: "#7fa8ff"
+    description: Planeten-, Mond- und Himmelskoerperprofile.
+    template: entity-default
+    groups:
+      - astronomy
+      - geography
+    fields:
+      star_system:
+        type: text
+        label: Star System
+        group: orbital
+      planet_class:
+        type: select
+        label: Planet Class
+        group: orbital
+        options:
+          - value: terrestrial
+            label: Terrestrial
+          - value: gas-giant
+            label: Gas Giant
+          - value: ice
+            label: Ice World
+          - value: oceanic
+            label: Oceanic
+      gravity:
+        type: number
+        label: Gravity (g)
+        group: orbital
+      atmosphere:
+        type: textarea
+        label: Atmosphere
+        group: climate
+      biomes:
+        type: multiselect
+        label: Major Biomes
+        group: climate
+        options:
+          - tundra
+          - ocean
+          - desert
+          - temperate-forest
+          - wetlands
+      governing_body:
+        type: reference
+        label: Governing Body
+        group: society
+
+  - id: institution
+    label: Institution
+    icon: relay
+    color: "#f2c46f"
+    description: Organisationen, Staaten, Orden oder akademische Einrichtungen.
+    template: entity-default
+    groups:
+      - politics
+      - culture
+    fields:
+      founded:
+        type: date
+        label: Founded
+        group: timeline
+      institution_type:
+        type: select
+        label: Institution Type
+        group: identity
+        options:
+          - republic
+          - guild
+          - archive
+          - university
+          - military
+      seat:
+        type: reference
+        label: Seat
+        group: identity
+      domains:
+        type: tags
+        label: Domains
+        group: scope
+      member_entities:
+        type: reference-list
+        label: Member Entities
+        group: scope
+
+  - id: event
+    label: Event
+    icon: chronicle
+    color: "#ef83ff"
+    description: Historische, politische oder kosmische Ereignisse.
+    template: entity-default
+    groups:
+      - history
+      - chronology
+    fields:
+      event_date:
+        type: date
+        label: Event Date
+        group: timeline
+      location:
+        type: reference
+        label: Location
+        group: timeline
+      participants:
+        type: reference-list
+        label: Participants
+        group: timeline
+      impact_tags:
+        type: tags
+        label: Impact Tags
+        group: analysis
+      significance:
+        type: textarea
+        label: Significance
+        group: analysis

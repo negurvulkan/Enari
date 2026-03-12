@@ -1,0 +1,17 @@
+# Temporäre Codex-Dateien
+.codex_tmp/
+
+# Cache
+cache/
+cache/**
+
+# Smarty compile/cache
+cache/smarty/
+cache/smarty/**
+
+# Logs
+*.log
+
+# OS / Editor
+.DS_Store
+Thumbs.db
