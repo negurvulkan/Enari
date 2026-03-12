@@ -107,8 +107,9 @@ return array(
         'historyRoot' => 'cache/admin-history',
         'previewTheme' => 'parchment',
         'git' => array(
-            'enabled' => true,
-            'repositoryRoot' => '.',
+            'enabled' => false,
+            // Point this to a dedicated local content repository, not to the CMS root.
+            'repositoryRoot' => '',
             'remoteName' => 'origin',
             'defaultBranch' => 'main',
             'allowRemoteSetup' => true,

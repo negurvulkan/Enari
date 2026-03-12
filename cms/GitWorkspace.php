@@ -76,6 +76,8 @@ final class GitWorkspace
      */
     public function getClientConfig(): array
     {
+        $repositoryState = $this->detectRepositoryState();
+
         return array(
             'enabled' => $this->isEnabled(),
             'remoteName' => (string) ($this->config['remoteName'] ?? 'origin'),
@@ -83,7 +85,11 @@ final class GitWorkspace
             'allowRemoteSetup' => !empty($this->config['allowRemoteSetup']),
             'allowPull' => !array_key_exists('allowPull', $this->config) || !empty($this->config['allowPull']),
             'allowPush' => !array_key_exists('allowPush', $this->config) || !empty($this->config['allowPush']),
-            'repositoryRoot' => $this->projectPathFromAbsolute($this->repositoryRoot) ?: '.',
+            'repositoryRoot' => $this->displayRepositoryRoot(),
+            'repositoryLabel' => 'Content-Repository',
+            'managedPaths' => $this->managedProjectPathsForClient(),
+            'repositoryState' => (string) ($repositoryState['id'] ?? 'unconfigured'),
+            'setupMode' => (string) ($repositoryState['setupMode'] ?? ''),
         );
     }
 
@@ -98,7 +104,12 @@ final class GitWorkspace
             'enabled' => $this->isEnabled(),
             'available' => false,
             'isRepository' => false,
-            'repositoryRoot' => $this->projectPathFromAbsolute($this->repositoryRoot) ?: '.',
+            'repositoryRoot' => $this->displayRepositoryRoot(),
+            'repositoryLabel' => 'Content-Repository',
+            'repositoryState' => 'unconfigured',
+            'setupMode' => '',
+            'canInitialize' => false,
+            'canClone' => false,
             'remoteName' => (string) ($this->config['remoteName'] ?? 'origin'),
             'remoteUrl' => '',
             'branch' => '',
@@ -120,27 +131,35 @@ final class GitWorkspace
             return $status;
         }
 
+        if (!$this->isContentRepositoryConfigured()) {
+            $status['message'] = 'Bitte ein separates Content-Repository konfigurieren. Das CMS-Hauptrepo wird bewusst nicht synchronisiert.';
+            return $status;
+        }
+
+        if ($this->managedRepoPaths === array()) {
+            $status['message'] = 'Es wurden keine verwalteten Content-Pfade im konfigurierten Content-Repository gefunden.';
+            return $status;
+        }
+
         if (!$this->isGitAvailable()) {
             $status['message'] = 'Git ist auf diesem Server nicht verfuegbar.';
             return $status;
         }
 
         $status['available'] = true;
+        $repositoryState = $this->detectRepositoryState();
+        $status['repositoryState'] = (string) ($repositoryState['id'] ?? 'unconfigured');
+        $status['setupMode'] = (string) ($repositoryState['setupMode'] ?? '');
+        $status['canInitialize'] = !empty($repositoryState['canInitialize']);
+        $status['canClone'] = !empty($repositoryState['canClone']);
 
-        $repositoryCheck = $this->runGit(array('rev-parse', '--show-toplevel'));
-        if (($repositoryCheck['exitCode'] ?? 1) !== 0) {
-            $status['message'] = 'Das konfigurierte Repository konnte nicht erkannt werden.';
-            return $status;
-        }
-
-        $topLevel = trim((string) ($repositoryCheck['stdout'] ?? ''));
-        if ($topLevel === '') {
-            $status['message'] = 'Das konfigurierte Repository konnte nicht erkannt werden.';
+        if (($repositoryState['id'] ?? '') !== 'ready') {
+            $status['message'] = $this->repositoryStateMessage($repositoryState);
             return $status;
         }
 
         $status['isRepository'] = true;
-        $status['repositoryRoot'] = $this->projectPathFromAbsolute(str_replace('\\', '/', $topLevel)) ?: '.';
+        $status['repositoryRoot'] = $this->displayRepositoryRoot();
         $status['branch'] = $this->readCurrentBranch();
         $status['upstream'] = $this->readUpstreamRef();
         $status['remoteUrl'] = $this->readRemoteUrl((string) ($status['remoteName'] ?? 'origin'));
@@ -182,12 +201,16 @@ final class GitWorkspace
             return $this->errorResult('Git-Integration ist deaktiviert.');
         }
 
+        if (!$this->isContentRepositoryConfigured()) {
+            return $this->errorResult('Bitte zuerst ein separates Content-Repository konfigurieren. Das CMS-Hauptrepo wird bewusst nicht als Remote-Ziel verwendet.', null, $this->status());
+        }
+
         if (empty($this->config['allowRemoteSetup'])) {
             return $this->errorResult('Remote-Setup ist in der Konfiguration deaktiviert.');
         }
 
-        if (!$this->ensureRepository()) {
-            return $this->errorResult('Kein gueltiges Git-Repository gefunden.');
+        if ($this->managedRepoPaths === array()) {
+            return $this->errorResult('Es wurden keine verwalteten Content-Pfade fuer die Git-Synchronisierung gefunden.', null, $this->status());
         }
 
         $remoteName = $this->normalizeRefName($remoteName !== '' ? $remoteName : (string) ($this->config['remoteName'] ?? 'origin'));
@@ -198,30 +221,22 @@ final class GitWorkspace
             return $this->errorResult('Remote-Name und Remote-URL sind erforderlich.');
         }
 
-        $existingRemotes = preg_split('/\r?\n/', trim((string) ($this->runGit(array('remote'))['stdout'] ?? ''))) ?: array();
-        if (in_array($remoteName, $existingRemotes, true)) {
-            $setUrl = $this->runGit(array('remote', 'set-url', $remoteName, $remoteUrl));
-            if (($setUrl['exitCode'] ?? 1) !== 0) {
-                return $this->errorResult('Remote-URL konnte nicht aktualisiert werden.', $setUrl);
-            }
-        } else {
-            $addRemote = $this->runGit(array('remote', 'add', $remoteName, $remoteUrl));
-            if (($addRemote['exitCode'] ?? 1) !== 0) {
-                return $this->errorResult('Remote konnte nicht angelegt werden.', $addRemote);
-            }
+        $repositoryState = $this->detectRepositoryState();
+        if (($repositoryState['id'] ?? '') !== 'ready') {
+            return $this->prepareRepositoryForRemote($repositoryState, $remoteUrl, $remoteName, $branch);
         }
 
-        $fetch = $this->runGit(array('fetch', $remoteName));
-        if (($fetch['exitCode'] ?? 1) !== 0) {
-            return $this->errorResult('Remote wurde gespeichert, konnte aber nicht abgerufen werden.', $fetch, $this->status());
+        if (!$this->ensureRepository()) {
+            return $this->errorResult('Kein gueltiges Git-Repository gefunden.');
         }
 
-        $currentBranch = $this->readCurrentBranch();
-        if ($currentBranch !== '' && $branch !== '') {
-            $remoteBranchExists = $this->runGit(array('show-ref', '--verify', '--quiet', 'refs/remotes/' . $remoteName . '/' . $branch));
-            if (($remoteBranchExists['exitCode'] ?? 1) === 0) {
-                $this->runGit(array('branch', '--set-upstream-to', $remoteName . '/' . $branch, $currentBranch));
-            }
+        $remoteSetup = $this->configureRemoteAndFetch($remoteUrl, $remoteName, $branch);
+        if (empty($remoteSetup['ok'])) {
+            return $this->errorResult(
+                (string) ($remoteSetup['message'] ?? 'Remote konnte nicht konfiguriert werden.'),
+                isset($remoteSetup['command']) && is_array($remoteSetup['command']) ? $remoteSetup['command'] : null,
+                $this->status()
+            );
         }
 
         return array(
@@ -240,6 +255,10 @@ final class GitWorkspace
     {
         if (!$this->isEnabled()) {
             return $this->errorResult('Git-Integration ist deaktiviert.');
+        }
+
+        if (!$this->isContentRepositoryConfigured()) {
+            return $this->errorResult('Bitte zuerst ein separates Content-Repository konfigurieren.', null, $this->status());
         }
 
         if (!$this->ensureRepository()) {
@@ -272,6 +291,10 @@ final class GitWorkspace
     {
         if (!$this->isEnabled()) {
             return $this->errorResult('Git-Integration ist deaktiviert.');
+        }
+
+        if (!$this->isContentRepositoryConfigured()) {
+            return $this->errorResult('Bitte zuerst ein separates Content-Repository konfigurieren.', null, $this->status());
         }
 
         if (!$this->ensureRepository()) {
@@ -318,6 +341,10 @@ final class GitWorkspace
     {
         if (!$this->isEnabled()) {
             return $this->errorResult('Git-Integration ist deaktiviert.');
+        }
+
+        if (!$this->isContentRepositoryConfigured()) {
+            return $this->errorResult('Bitte zuerst ein separates Content-Repository konfigurieren.', null, $this->status());
         }
 
         if (empty($this->config['allowPull'])) {
@@ -453,6 +480,10 @@ final class GitWorkspace
             return $this->errorResult('Git-Integration ist deaktiviert.');
         }
 
+        if (!$this->isContentRepositoryConfigured()) {
+            return $this->errorResult('Bitte zuerst ein separates Content-Repository konfigurieren.', null, $this->status());
+        }
+
         if (empty($this->config['allowPush'])) {
             return $this->errorResult('Push ist in der Konfiguration deaktiviert.');
         }
@@ -514,6 +545,10 @@ final class GitWorkspace
             return $this->errorResult('Git-Integration ist deaktiviert.');
         }
 
+        if (!$this->isContentRepositoryConfigured()) {
+            return $this->errorResult('Bitte zuerst ein separates Content-Repository konfigurieren.', null, $this->status());
+        }
+
         if (!$this->ensureRepository()) {
             return $this->errorResult('Kein gueltiges Git-Repository gefunden.');
         }
@@ -573,6 +608,10 @@ final class GitWorkspace
             return $this->errorResult('Git-Integration ist deaktiviert.');
         }
 
+        if (!$this->isContentRepositoryConfigured()) {
+            return $this->errorResult('Bitte zuerst ein separates Content-Repository konfigurieren.', null, $this->status());
+        }
+
         if (!$this->ensureRepository()) {
             return $this->errorResult('Kein gueltiges Git-Repository gefunden.');
         }
@@ -607,6 +646,10 @@ final class GitWorkspace
     {
         if (!$this->isEnabled()) {
             return $this->errorResult('Git-Integration ist deaktiviert.');
+        }
+
+        if (!$this->isContentRepositoryConfigured()) {
+            return $this->errorResult('Bitte zuerst ein separates Content-Repository konfigurieren.', null, $this->status());
         }
 
         if (!$this->ensureRepository()) {
@@ -804,6 +847,8 @@ final class GitWorkspace
             'diagnostics' => array(
                 'gitVersion' => $gitVersion,
                 'repositoryRoot' => (string) ($status['repositoryRoot'] ?? '.'),
+                'repositoryLabel' => (string) ($status['repositoryLabel'] ?? 'Content-Repository'),
+                'repositoryState' => (string) ($status['repositoryState'] ?? ''),
                 'isRepository' => !empty($status['isRepository']),
                 'branch' => (string) ($status['branch'] ?? ''),
                 'upstream' => (string) ($status['upstream'] ?? ''),
@@ -1003,7 +1048,7 @@ final class GitWorkspace
     {
         return array(
             'enabled' => !empty($config['enabled']),
-            'repositoryRoot' => $this->normalizePath((string) ($config['repositoryRoot'] ?? '.')),
+            'repositoryRoot' => $this->normalizePath((string) ($config['repositoryRoot'] ?? '')),
             'remoteName' => $this->normalizeRefName((string) ($config['remoteName'] ?? 'origin')) ?: 'origin',
             'defaultBranch' => $this->normalizeRefName((string) ($config['defaultBranch'] ?? 'main')) ?: 'main',
             'allowRemoteSetup' => !array_key_exists('allowRemoteSetup', $config) || !empty($config['allowRemoteSetup']),
@@ -1061,8 +1106,137 @@ final class GitWorkspace
      */
     private function ensureRepository(): bool
     {
-        $result = $this->runGit(array('rev-parse', '--is-inside-work-tree'));
-        return trim((string) ($result['stdout'] ?? '')) === 'true';
+        $topLevel = $this->readRepositoryTopLevel();
+        return $topLevel !== '' && $this->repositoryMatchesConfiguredRoot($topLevel);
+    }
+
+    /**
+     * Detects whether the configured content path is already a dedicated repository or still needs first-time setup.
+     *
+     * @return array<string, mixed>
+     */
+    private function detectRepositoryState(): array
+    {
+        $state = array(
+            'id' => 'unconfigured',
+            'setupMode' => '',
+            'canInitialize' => false,
+            'canClone' => false,
+            'directoryEmpty' => true,
+            'topLevel' => '',
+        );
+
+        if (!$this->isContentRepositoryConfigured()) {
+            return $state;
+        }
+
+        $state['directoryEmpty'] = $this->isDirectoryEmpty($this->repositoryRoot);
+        $topLevel = $this->readRepositoryTopLevel();
+        $state['topLevel'] = $topLevel;
+
+        if ($topLevel !== '') {
+            if ($this->repositoryMatchesConfiguredRoot($topLevel)) {
+                $state['id'] = 'ready';
+                return $state;
+            }
+
+            $state['id'] = 'nested-parent-repo';
+            $state['canInitialize'] = true;
+            $state['canClone'] = !empty($state['directoryEmpty']);
+            $state['setupMode'] = !empty($state['directoryEmpty']) ? 'clone' : 'initialize';
+            return $state;
+        }
+
+        if (!empty($state['directoryEmpty'])) {
+            $state['id'] = 'empty-directory';
+            $state['canInitialize'] = true;
+            $state['canClone'] = true;
+            $state['setupMode'] = 'clone';
+            return $state;
+        }
+
+        $state['id'] = 'content-directory';
+        $state['canInitialize'] = true;
+        $state['setupMode'] = 'initialize';
+
+        return $state;
+    }
+
+    /**
+     * Builds a user-facing message for the current repository state.
+     *
+     * @param array<string, mixed> $repositoryState
+     */
+    private function repositoryStateMessage(array $repositoryState): string
+    {
+        $state = (string) ($repositoryState['id'] ?? 'unconfigured');
+
+        if ($state === 'empty-directory') {
+            return 'Noch kein eigenes Git-Repository im Content-Pfad. Mit "Content-Remote einrichten" kann hier direkt ein Remote geklont werden.';
+        }
+
+        if ($state === 'content-directory') {
+            return 'Noch kein eigenes Git-Repository im Content-Pfad. Mit "Content-Remote einrichten" wird der bestehende Content hier als lokales Repository initialisiert.';
+        }
+
+        if ($state === 'nested-parent-repo') {
+            return 'Der Content-Pfad liegt aktuell noch im CMS-Hauptrepo. Mit "Content-Remote einrichten" wird hier automatisch ein eigenes Content-Repository angelegt.';
+        }
+
+        if ($state === 'ready') {
+            return 'Repository ist synchronisiert oder bereit fuer den naechsten Sync.';
+        }
+
+        return 'Das konfigurierte Content-Repository ist noch nicht bereit.';
+    }
+
+    /**
+     * Prepares a first-time content repository from the configured directory and remote URL.
+     *
+     * @param array<string, mixed> $repositoryState
+     * @return array<string, mixed>
+     */
+    private function prepareRepositoryForRemote(array $repositoryState, string $remoteUrl, string $remoteName, string $branch): array
+    {
+        $mode = (string) ($repositoryState['setupMode'] ?? '');
+
+        if ($mode === 'clone') {
+            return $this->cloneContentRepository($remoteUrl, $remoteName, $branch);
+        }
+
+        if ($mode === 'initialize') {
+            return $this->initializeContentRepository($remoteUrl, $remoteName, $branch);
+        }
+
+        return $this->errorResult('Das konfigurierte Content-Verzeichnis konnte nicht fuer Git vorbereitet werden.', null, $this->status());
+    }
+
+    /**
+     * Reads the effective Git top-level directory for the configured content repository path.
+     */
+    private function readRepositoryTopLevel(): string
+    {
+        $result = $this->runGit(array('rev-parse', '--show-toplevel'));
+        if (($result['exitCode'] ?? 1) !== 0) {
+            return '';
+        }
+
+        return rtrim(str_replace('\\', '/', trim((string) ($result['stdout'] ?? ''))), '/');
+    }
+
+    /**
+     * Determines whether Git is configured against a dedicated content repository instead of the CMS root.
+     */
+    private function isContentRepositoryConfigured(): bool
+    {
+        $repositoryRoot = rtrim($this->repositoryRoot, '/');
+        $basePath = rtrim($this->basePath, '/');
+
+        if ($repositoryRoot === '' || $repositoryRoot === $basePath) {
+            return false;
+        }
+
+        return is_dir($repositoryRoot);
     }
 
     /**
@@ -1090,6 +1264,204 @@ final class GitWorkspace
     {
         $result = $this->runGit(array('remote', 'get-url', $remoteName));
         return ($result['exitCode'] ?? 1) === 0 ? trim((string) ($result['stdout'] ?? '')) : '';
+    }
+
+    /**
+     * Initializes a dedicated Git repository in the configured content directory and seeds it with the current content snapshot.
+     *
+     * @return array<string, mixed>
+     */
+    private function initializeContentRepository(string $remoteUrl, string $remoteName, string $branch): array
+    {
+        $this->ensureDirectory($this->repositoryRoot);
+
+        $init = $this->runCommand(array('git', 'init'), $this->repositoryRoot);
+        if (($init['exitCode'] ?? 1) !== 0) {
+            return $this->errorResult('Das Content-Repository konnte nicht initialisiert werden.', $init, $this->status());
+        }
+
+        if ($branch !== '') {
+            $head = $this->setLocalHeadBranch($branch);
+            if (($head['exitCode'] ?? 1) !== 0) {
+                return $this->errorResult('Der Standard-Branch fuer das neue Content-Repository konnte nicht gesetzt werden.', $head, $this->status());
+            }
+        }
+
+        $initialCommit = $this->createInitialContentCommit();
+        if (empty($initialCommit['ok'])) {
+            return $this->errorResult(
+                (string) ($initialCommit['message'] ?? 'Der erste Commit konnte nicht erstellt werden.'),
+                isset($initialCommit['command']) && is_array($initialCommit['command']) ? $initialCommit['command'] : null,
+                $this->status()
+            );
+        }
+
+        $remoteSetup = $this->configureRemoteAndFetch($remoteUrl, $remoteName, $branch);
+        if (empty($remoteSetup['ok'])) {
+            return $this->errorResult(
+                'Content-Repository wurde initialisiert, aber das Remote konnte nicht vollstaendig eingerichtet werden.',
+                isset($remoteSetup['command']) && is_array($remoteSetup['command']) ? $remoteSetup['command'] : null,
+                $this->status()
+            );
+        }
+
+        $message = !empty($initialCommit['hasManagedChanges'])
+            ? 'Content-Repository wurde initialisiert, mit dem Remote verbunden und der aktuelle Content als erster Commit vorbereitet.'
+            : 'Content-Repository wurde initialisiert, mit dem Remote verbunden und mit einem Start-Commit vorbereitet.';
+
+        return array(
+            'ok' => true,
+            'message' => $message,
+            'status' => $this->status(),
+        );
+    }
+
+    /**
+     * Clones the configured remote into the currently empty content directory.
+     *
+     * @return array<string, mixed>
+     */
+    private function cloneContentRepository(string $remoteUrl, string $remoteName, string $branch): array
+    {
+        $this->ensureDirectory($this->repositoryRoot);
+
+        if (!$this->isDirectoryEmpty($this->repositoryRoot)) {
+            return $this->errorResult('Das konfigurierte Content-Verzeichnis ist nicht leer und kann daher nicht direkt geklont werden.', null, $this->status());
+        }
+
+        $clone = $this->runGitNonInteractive(array('clone', '--origin', $remoteName, $remoteUrl, '.'));
+        if (($clone['exitCode'] ?? 1) !== 0) {
+            return $this->errorResult('Das Remote konnte nicht in das Content-Verzeichnis geklont werden.', $clone, $this->status());
+        }
+
+        if ($branch !== '') {
+            $remoteBranchExists = $this->runGit(array('show-ref', '--verify', '--quiet', 'refs/remotes/' . $remoteName . '/' . $branch));
+            if (($remoteBranchExists['exitCode'] ?? 1) === 0) {
+                $currentBranch = $this->readCurrentBranch();
+                if ($currentBranch !== $branch) {
+                    $checkout = $this->runGit(array('checkout', '-B', $branch, '--track', $remoteName . '/' . $branch));
+                    if (($checkout['exitCode'] ?? 1) !== 0) {
+                        return $this->errorResult('Das geklonte Content-Repository konnte nicht auf den gewuenschten Tracking-Branch umgestellt werden.', $checkout, $this->status());
+                    }
+                }
+            } elseif ($this->readCurrentBranch() === '') {
+                $head = $this->setLocalHeadBranch($branch);
+                if (($head['exitCode'] ?? 1) !== 0) {
+                    return $this->errorResult('Das geklonte Content-Repository konnte nicht auf den gewuenschten Branch vorbereitet werden.', $head, $this->status());
+                }
+            }
+        }
+
+        $this->configureTrackingBranchIfAvailable($remoteName, $branch);
+
+        return array(
+            'ok' => true,
+            'message' => 'Content-Repository wurde mit dem Remote verbunden.',
+            'status' => $this->status(),
+        );
+    }
+
+    /**
+     * Creates the initial content commit for a freshly initialized repository.
+     *
+     * @return array<string, mixed>
+     */
+    private function createInitialContentCommit(): array
+    {
+        $stage = $this->stageManagedChanges();
+        if (($stage['exitCode'] ?? 1) !== 0) {
+            return array(
+                'ok' => false,
+                'message' => 'Verwaltete Content-Dateien konnten nicht fuer den ersten Commit vorbereitet werden.',
+                'command' => $stage,
+            );
+        }
+
+        $hasManagedChanges = $this->hasStagedChanges();
+        $commitArguments = $hasManagedChanges
+            ? array('commit', '-m', 'Initial content import')
+            : array('commit', '--allow-empty', '-m', 'Initialize content repository');
+        $commit = $this->runGitCommit($commitArguments);
+        if (($commit['exitCode'] ?? 1) !== 0) {
+            return array(
+                'ok' => false,
+                'message' => 'Der erste Commit fuer das neue Content-Repository ist fehlgeschlagen.',
+                'command' => $commit,
+            );
+        }
+
+        return array(
+            'ok' => true,
+            'hasManagedChanges' => $hasManagedChanges,
+        );
+    }
+
+    /**
+     * Persists a remote URL, fetches refs, and wires the current branch to the remote branch when available.
+     *
+     * @return array<string, mixed>
+     */
+    private function configureRemoteAndFetch(string $remoteUrl, string $remoteName, string $branch): array
+    {
+        $existingRemotes = preg_split('/\r?\n/', trim((string) ($this->runGit(array('remote'))['stdout'] ?? ''))) ?: array();
+        if (in_array($remoteName, $existingRemotes, true)) {
+            $setUrl = $this->runGit(array('remote', 'set-url', $remoteName, $remoteUrl));
+            if (($setUrl['exitCode'] ?? 1) !== 0) {
+                return array(
+                    'ok' => false,
+                    'message' => 'Remote-URL konnte nicht aktualisiert werden.',
+                    'command' => $setUrl,
+                );
+            }
+        } else {
+            $addRemote = $this->runGit(array('remote', 'add', $remoteName, $remoteUrl));
+            if (($addRemote['exitCode'] ?? 1) !== 0) {
+                return array(
+                    'ok' => false,
+                    'message' => 'Remote konnte nicht angelegt werden.',
+                    'command' => $addRemote,
+                );
+            }
+        }
+
+        $fetch = $this->runGitNonInteractive(array('fetch', $remoteName));
+        if (($fetch['exitCode'] ?? 1) !== 0) {
+            return array(
+                'ok' => false,
+                'message' => 'Remote wurde gespeichert, konnte aber nicht abgerufen werden.',
+                'command' => $fetch,
+            );
+        }
+
+        $this->configureTrackingBranchIfAvailable($remoteName, $branch);
+
+        return array('ok' => true);
+    }
+
+    /**
+     * Sets the repository HEAD to the configured default branch before the first push.
+     *
+     * @return array<string, mixed>
+     */
+    private function setLocalHeadBranch(string $branch): array
+    {
+        return $this->runCommand(array('git', 'symbolic-ref', 'HEAD', 'refs/heads/' . $branch), $this->repositoryRoot);
+    }
+
+    /**
+     * Wires the current branch to a fetched remote branch if that branch already exists remotely.
+     */
+    private function configureTrackingBranchIfAvailable(string $remoteName, string $branch): void
+    {
+        $currentBranch = $this->readCurrentBranch();
+        if ($currentBranch === '' || $branch === '') {
+            return;
+        }
+
+        $remoteBranchExists = $this->runGit(array('show-ref', '--verify', '--quiet', 'refs/remotes/' . $remoteName . '/' . $branch));
+        if (($remoteBranchExists['exitCode'] ?? 1) === 0) {
+            $this->runGit(array('branch', '--set-upstream-to', $remoteName . '/' . $branch, $currentBranch));
+        }
     }
 
     /**
@@ -1283,7 +1655,7 @@ final class GitWorkspace
 
         foreach ($allPaths as $repoPath) {
             $projectPath = $this->projectPathFromRepoPath($repoPath);
-            if ($projectPath !== '' && $this->isEditableProjectPath($projectPath)) {
+            if ($projectPath !== '' && $this->isManagedMarkdownRepoPath($repoPath)) {
                 $snapshotPaths[$projectPath] = $projectPath;
             }
         }
@@ -1347,7 +1719,7 @@ final class GitWorkspace
         $paths = array();
         foreach ($this->diffRepoPaths($fromRevision, $toRevision) as $repoPath) {
             $projectPath = $this->projectPathFromRepoPath($repoPath);
-            if ($projectPath !== '' && $this->isEditableProjectPath($projectPath)) {
+            if ($projectPath !== '' && $this->isManagedMarkdownRepoPath($repoPath)) {
                 $paths[$projectPath] = $projectPath;
             }
         }
@@ -2111,21 +2483,20 @@ final class GitWorkspace
      */
     private function isMergeableRepoPath(string $repoPath): bool
     {
-        $projectPath = $this->projectPathFromRepoPath($repoPath);
-        return $projectPath !== '' && $this->isEditableProjectPath($projectPath);
+        return $this->isManagedMarkdownRepoPath($repoPath);
     }
 
     /**
-     * Determines whether a project path is an editable Markdown document.
+     * Determines whether a repo path is a managed Markdown document.
      */
-    private function isEditableProjectPath(string $projectPath): bool
+    private function isManagedMarkdownRepoPath(string $repoPath): bool
     {
-        $projectPath = $this->normalizePath($projectPath);
-        if ($projectPath === '' || strtolower(pathinfo($projectPath, PATHINFO_EXTENSION)) !== 'md') {
+        $repoPath = $this->normalizePath($repoPath);
+        if ($repoPath === '' || strtolower(pathinfo($repoPath, PATHINFO_EXTENSION)) !== 'md') {
             return false;
         }
 
-        return strpos($projectPath, 'content/') === 0 || strpos($projectPath, 'cms/pages/') === 0;
+        return $this->isManagedRepoPath($repoPath);
     }
 
     /**
@@ -2135,6 +2506,52 @@ final class GitWorkspace
     {
         $projectPath = $this->projectPathFromRepoPath($repoPath);
         return $projectPath !== '' ? $projectPath : $repoPath;
+    }
+
+    /**
+     * Builds a display label for the configured content repository root.
+     */
+    private function displayRepositoryRoot(): string
+    {
+        if (trim((string) ($this->config['repositoryRoot'] ?? '')) === '') {
+            return '(nicht konfiguriert)';
+        }
+
+        $projectPath = $this->projectPathFromAbsolute($this->repositoryRoot);
+        if ($projectPath !== '') {
+            return $projectPath;
+        }
+
+        return $this->repositoryRoot !== '' ? $this->repositoryRoot : '(nicht konfiguriert)';
+    }
+
+    /**
+     * Determines whether the detected Git top-level matches the configured content repository root.
+     */
+    private function repositoryMatchesConfiguredRoot(string $topLevel): bool
+    {
+        return rtrim($this->normalizePath($topLevel), '/') === rtrim($this->repositoryRoot, '/');
+    }
+
+    /**
+     * Returns managed project paths for client-side display.
+     *
+     * @return string[]
+     */
+    private function managedProjectPathsForClient(): array
+    {
+        $paths = array();
+
+        foreach ($this->managedRepoPaths as $repoPath) {
+            $projectPath = $this->projectPathFromRepoPath($repoPath);
+            $paths[] = $projectPath !== '' ? $projectPath : $repoPath;
+        }
+
+        sort($paths, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return array_values(array_unique(array_filter($paths, static function ($path): bool {
+            return is_string($path) && trim($path) !== '';
+        })));
     }
 
     /**
@@ -2208,6 +2625,29 @@ final class GitWorkspace
         }
 
         mkdir($directory, 0777, true);
+    }
+
+    /**
+     * Determines whether a directory contains any entries besides `.` and `..`.
+     */
+    private function isDirectoryEmpty(string $directory): bool
+    {
+        if (!is_dir($directory)) {
+            return true;
+        }
+
+        $entries = @scandir($directory);
+        if (!is_array($entries)) {
+            return true;
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry !== '.' && $entry !== '..') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

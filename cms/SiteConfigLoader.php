@@ -90,6 +90,7 @@ final class SiteConfigLoader
         self::validateModules($basePath, (array) ($config['modules'] ?? array()), $errors);
         self::validatePreviewTheme($basePath, (array) ($config['admin'] ?? array()), $errors);
         self::validateI18n($basePath, (array) ($config['i18n'] ?? array()), $errors);
+        self::validateAdminGit($basePath, (array) ($config['admin'] ?? array()), $errors);
 
         return array(
             'ok' => $errors === array(),
@@ -245,6 +246,39 @@ final class SiteConfigLoader
         $themePath = rtrim(str_replace('\\', '/', $basePath), '/') . '/themes/' . $themeKey;
         if (!is_dir($themePath)) {
             $errors[] = 'Preview-Theme fehlt: themes/' . $themeKey;
+        }
+    }
+
+    /**
+     * Validates Git configuration for a dedicated content repository.
+     *
+     * @param array<string, mixed> $adminConfig
+     * @param array<int, string> $errors
+     */
+    private static function validateAdminGit(string $basePath, array $adminConfig, array &$errors): void
+    {
+        $gitConfig = is_array($adminConfig['git'] ?? null) ? $adminConfig['git'] : array();
+        if (empty($gitConfig['enabled'])) {
+            return;
+        }
+
+        $repositoryRoot = trim((string) ($gitConfig['repositoryRoot'] ?? ''));
+        if ($repositoryRoot === '') {
+            $errors[] = 'admin.git.repositoryRoot darf nicht leer sein, wenn die Git-Integration aktiviert ist.';
+            return;
+        }
+
+        $resolvedRoot = self::resolvePath($basePath, $repositoryRoot);
+        $normalizedBasePath = rtrim(str_replace('\\', '/', $basePath), '/');
+        $normalizedRoot = rtrim(str_replace('\\', '/', $resolvedRoot), '/');
+
+        if (!is_dir($resolvedRoot)) {
+            $errors[] = 'admin.git.repositoryRoot fehlt oder ist kein Verzeichnis: ' . self::normalizeRelativePath($repositoryRoot);
+            return;
+        }
+
+        if ($normalizedRoot === $normalizedBasePath) {
+            $errors[] = 'admin.git.repositoryRoot muss auf ein separates Content-Repository zeigen, nicht auf das CMS-Root.';
         }
     }
 

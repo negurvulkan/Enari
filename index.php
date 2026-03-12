@@ -1237,6 +1237,52 @@ function build_theme_asset_urls(string $basePath, ContentRepository $repository,
 }
 
 /**
+ * Collects the content roots configured in site.config.php for the content Git workspace.
+ *
+ * @param array<string, string> $contentRootsByLocale
+ * @return string[]
+ */
+function collect_git_managed_content_paths(array $contentRootsByLocale): array
+{
+    $paths = array();
+    $normalizeProjectPath = static function (string $path): string {
+        $path = str_replace('\\', '/', trim($path));
+        if ($path === '' || $path === '.') {
+            return '';
+        }
+
+        $segments = array();
+        foreach (explode('/', $path) as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+
+            if ($segment === '..') {
+                array_pop($segments);
+                continue;
+            }
+
+            $segments[] = $segment;
+        }
+
+        return implode('/', $segments);
+    };
+
+    foreach ($contentRootsByLocale as $contentRoot) {
+        if (!is_string($contentRoot)) {
+            continue;
+        }
+
+        $contentRoot = $normalizeProjectPath($contentRoot);
+        if ($contentRoot !== '') {
+            $paths[$contentRoot] = $contentRoot;
+        }
+    }
+
+    return array_values($paths);
+}
+
+/**
  * Renders a setup error page when the local config is missing or invalid.
  */
 function render_config_setup_page(string $message): void
@@ -1354,7 +1400,7 @@ $adminDefaults = array(
     'previewTheme' => 'parchment',
     'git' => array(
         'enabled' => false,
-        'repositoryRoot' => '.',
+        'repositoryRoot' => '',
         'remoteName' => 'origin',
         'defaultBranch' => 'main',
         'allowRemoteSetup' => true,
@@ -1555,10 +1601,7 @@ $adminWorkspace = new AdminWorkspace(
     new GitWorkspace(
         __DIR__,
         is_array($adminSettings['git'] ?? null) ? $adminSettings['git'] : array(),
-        array_values(array_unique(array_merge(
-            array('cms/pages'),
-            array_values(array_filter(array_map('strval', $repository->getContentRootsByLocale())))
-        )))
+        collect_git_managed_content_paths($repository->getContentRootsByLocale())
     ),
     $mermaidClientConfig,
     $cytoscapeClientConfig,

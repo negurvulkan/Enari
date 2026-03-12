@@ -38,6 +38,12 @@
  * @property {string} message
  * @property {string} branch
  * @property {string} upstream
+ * @property {string} repositoryLabel
+ * @property {string} repositoryRoot
+ * @property {string} repositoryState
+ * @property {string} setupMode
+ * @property {boolean} canInitialize
+ * @property {boolean} canClone
  * @property {string} remoteName
  * @property {string} remoteUrl
  * @property {number} ahead
@@ -1798,9 +1804,19 @@
         }
 
         const remoteLabel = status.remoteUrl ? escapeHtml(status.remoteUrl) : "Noch kein Remote";
+        const setupMode = status.setupMode || "";
         const syncLabel = status.isRepository
             ? `${status.branch || "(detached)"} · ahead ${status.ahead || 0} / behind ${status.behind || 0}`
-            : "Kein Repository erkannt";
+            : (setupMode === "clone"
+                ? "Erst-Setup: Remote in leeres Verzeichnis klonen"
+                : (setupMode === "initialize"
+                    ? "Erst-Setup: lokales Content-Repository initialisieren"
+                    : "Kein Repository erkannt"));
+        const repositoryLabel = status.repositoryLabel || state.gitConfig.repositoryLabel || "Content-Repository";
+        const repositoryRoot = status.repositoryRoot || state.gitConfig.repositoryRoot || "(nicht konfiguriert)";
+        const managedPaths = Array.isArray(state.gitConfig.managedPaths) && state.gitConfig.managedPaths.length
+            ? state.gitConfig.managedPaths.join(", ")
+            : "Keine verwalteten Content-Pfade erkannt";
 
         const publish = status.publish || {};
 
@@ -1812,12 +1828,17 @@
             </article>
             <div class="admin-git-meta">
                 <article class="admin-status">
+                    <p class="admin-status-list__eyebrow">${escapeHtml(repositoryLabel)}</p>
+                    <p class="admin-status__title">${escapeHtml(repositoryRoot)}</p>
+                    <p class="admin-document__meta">${escapeHtml(managedPaths)}</p>
+                </article>
+                <article class="admin-status">
                     <p class="admin-status-list__eyebrow">Remote</p>
                     <p class="admin-status__title">${escapeHtml(status.remoteName || state.gitConfig.remoteName || "origin")}</p>
                     <p class="admin-document__meta">${remoteLabel}</p>
                 </article>
                 <article class="admin-status">
-                    <p class="admin-status-list__eyebrow">Workspace</p>
+                    <p class="admin-status-list__eyebrow">Sync</p>
                     <p class="admin-status__title">${status.dirty ? "Lokale Aenderungen vorhanden" : "Sauber"}</p>
                     <p class="admin-document__meta">${status.mergeSession ? `Merge-Session: ${escapeHtml(status.mergeSession.id || "")}` : (status.upstream ? `Tracking: ${escapeHtml(status.upstream)}` : "Kein Tracking-Branch")}</p>
                 </article>
@@ -1826,6 +1847,13 @@
                     <p class="admin-status__title">${publish.canPush ? "Push-bereit" : (publish.canCommit ? "Commit-bereit" : "Review offen")}</p>
                     <p class="admin-document__meta">${publish.hasManagedChanges ? "Verwaltete Aenderungen vorhanden" : "Keine verwalteten Content-Aenderungen"}</p>
                 </article>
+                ${!status.isRepository && setupMode ? `
+                <article class="admin-status">
+                    <p class="admin-status-list__eyebrow">Erst-Setup</p>
+                    <p class="admin-status__title">${setupMode === "clone" ? "Remote klonen" : "Lokales Repo initialisieren"}</p>
+                    <p class="admin-document__meta">Mit "Content-Remote einrichten" wird das Repository automatisch vorbereitet.</p>
+                </article>
+                ` : ""}
             </div>
         `;
 
@@ -1843,7 +1871,7 @@
      */
     const loadGitStatus = async () => {
         const payload = await request("git/status", {
-            loadingLabel: "Git-Status wird geladen...",
+            loadingLabel: "Git-Status des Content-Repositories wird geladen...",
         });
         renderGitStatus(payload.status || null);
         return payload.status || null;
@@ -2265,12 +2293,13 @@
     const openGitDiagnosticsModal = async () => {
         const payload = await request("git/diagnostics");
         const diagnostics = payload.diagnostics || {};
-        const { body } = createModal("Git Diagnose");
+        const { body } = createModal("Content-Repo Diagnose");
 
         const summary = document.createElement("div");
         summary.className = "admin-git-meta";
         [
-            ["Git", diagnostics.gitVersion || "unbekannt", diagnostics.repositoryRoot || ""],
+            [diagnostics.repositoryLabel || "Content-Repository", diagnostics.repositoryRoot || "(nicht konfiguriert)", ""],
+            ["Git", diagnostics.gitVersion || "unbekannt", ""],
             ["Branch", diagnostics.branch || "(detached)", diagnostics.upstream || "Kein Tracking-Branch"],
             ["Remote", diagnostics.remoteName || "origin", diagnostics.remoteUrl || "Noch kein Remote"],
             ["Probe", diagnostics.remoteProbe?.ok ? "Erreichbar" : "Offen", diagnostics.remoteProbe?.message || "Noch keine Probe"],
@@ -2533,7 +2562,7 @@
      * Prompts for remote information and configures the Git remote.
      */
     const configureGitRemote = async () => {
-        const remoteUrl = window.prompt("Git Remote URL", state.gitStatus?.remoteUrl || "");
+        const remoteUrl = window.prompt("Content Remote URL", state.gitStatus?.remoteUrl || "");
         if (remoteUrl === null) {
             return;
         }
@@ -2558,8 +2587,8 @@
         });
 
         renderGitStatus(payload.status || null);
-        announce(payload.message || "Remote aktualisiert.");
-        window.alert(payload.message || "Remote aktualisiert.");
+        announce(payload.message || "Content-Remote aktualisiert.");
+        window.alert(payload.message || "Content-Remote aktualisiert.");
     };
 
     /**
@@ -3029,6 +3058,12 @@
         files: [],
         review: { changedDocuments: [], translationQueue: [], changedMarkdown: 0, changedAssets: 0 },
         message: "Git-Status wird geladen...",
+        repositoryLabel: state.gitConfig?.repositoryLabel || "Content-Repository",
+        repositoryRoot: state.gitConfig?.repositoryRoot || "(nicht konfiguriert)",
+        repositoryState: state.gitConfig?.repositoryState || "unconfigured",
+        setupMode: state.gitConfig?.setupMode || "",
+        canInitialize: false,
+        canClone: false,
         remoteName: state.gitConfig?.remoteName || "origin",
         remoteUrl: "",
         branch: "",

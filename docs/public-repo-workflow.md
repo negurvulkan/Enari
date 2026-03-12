@@ -42,6 +42,8 @@ php scripts/validate-config.php
 
 Die lokale `site.config.php` kann danach auf jeden beliebigen lokalen Content-Pfad zeigen. Entscheidend ist nur, dass die referenzierten Content-Roots, Homepages und Zusatzseiten dort tatsaechlich existieren.
 
+Wenn die Admin-Git-Integration aktiv ist, muss `admin.git.repositoryRoot` auf ein separates lokales Content-Repository zeigen. Das CMS-Hauptrepo selbst ist bewusst kein Ziel fuer Pull oder Push aus dem Admin.
+
 ## Private Inhalte lokal behalten
 
 Wichtige Regeln:
