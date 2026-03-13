@@ -652,6 +652,15 @@ function theme_cookie_path(): string
 }
 
 /**
+ * Builds the cookie name used for the resolved concrete theme.
+ */
+function theme_resolved_cookie_name(string $themeStorageKey): string
+{
+    $themeStorageKey = trim($themeStorageKey);
+    return ($themeStorageKey !== '' ? $themeStorageKey : 'worldmesh-cms-theme') . '-resolved';
+}
+
+/**
  * Resolves server theme.
  *
  * @return array<string, mixed>
@@ -667,7 +676,19 @@ function resolve_server_theme(array $themeCatalog, string $themeStorageKey, stri
         }
     }
 
-    $resolvedTheme = $selectedTheme === 'system' ? $defaultLightTheme : $selectedTheme;
+    $resolvedThemeCookieKey = theme_resolved_cookie_name($themeStorageKey);
+    $resolvedThemeCookieValue = $_COOKIE[$resolvedThemeCookieKey] ?? '';
+    $resolvedThemeFromCookie = '';
+    if (is_string($resolvedThemeCookieValue)) {
+        $decodedResolvedCookieValue = trim(rawurldecode($resolvedThemeCookieValue));
+        if (isset($themeCatalog[$decodedResolvedCookieValue])) {
+            $resolvedThemeFromCookie = $decodedResolvedCookieValue;
+        }
+    }
+
+    $resolvedTheme = $selectedTheme === 'system'
+        ? ($resolvedThemeFromCookie !== '' ? $resolvedThemeFromCookie : $defaultLightTheme)
+        : $selectedTheme;
     if (!isset($themeCatalog[$resolvedTheme])) {
         $resolvedTheme = isset($themeCatalog[$defaultLightTheme]) ? $defaultLightTheme : array_key_first($themeCatalog);
     }
@@ -2119,6 +2140,7 @@ $pageLoaderLabel = 'Inhalte werden geladen...';
                 defaultLightTheme,
                 defaultDarkTheme,
                 cookiePath: "<?= e(theme_cookie_path()) ?>",
+                resolvedCookieKey: "<?= e(theme_resolved_cookie_name($themeStorageKey)) ?>",
                 themeAssets: <?= $themeAssetManifestJson ?: '{}' ?>,
             };
             window.__CMS_MERMAID = <?= $mermaidClientConfigJson ?: '{}' ?>;

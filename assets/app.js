@@ -19,6 +19,8 @@ const themeCookiePath = themeSelect && themeSelect.dataset.themeCookiePath
 const themeStorageKey = themeSelect && themeSelect.dataset.themeStorageKey
     ? themeSelect.dataset.themeStorageKey
     : "worldmesh-cms-theme";
+const themeResolvedCookieKey = themeSettings.resolvedCookieKey || `${themeStorageKey}-resolved`;
+const themeSyncStorageKey = `${themeStorageKey}-server-sync`;
 const systemThemeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
 let applyThemeSelection = null;
@@ -68,6 +70,23 @@ const hidePageLoader = ({ immediate = false } = {}) => {
         setPageLoaderState(false);
     }, remaining);
 };
+
+/**
+ * Persists the selected and resolved theme cookies for server-side rendering.
+ */
+const writeThemeCookies = (selectedTheme, resolvedTheme) => {
+    document.cookie = `${encodeURIComponent(themeStorageKey)}=${encodeURIComponent(selectedTheme)}; path=${themeCookiePath}; max-age=31536000; samesite=lax`;
+    if (resolvedTheme) {
+        document.cookie = `${encodeURIComponent(themeResolvedCookieKey)}=${encodeURIComponent(resolvedTheme)}; path=${themeCookiePath}; max-age=31536000; samesite=lax`;
+    }
+};
+
+/**
+ * Builds a compact sync fingerprint for loop prevention.
+ */
+const buildThemeSyncFingerprint = (selectedTheme, resolvedTheme, layout) => (
+    `${selectedTheme || "system"}|${resolvedTheme || ""}|${layout || ""}`
+);
 
 window.CMSPageLoader = {
     show: showPageLoader,
@@ -284,7 +303,7 @@ if (themeSelect) {
                 // Ignore storage errors and keep the in-memory selection.
             }
 
-            document.cookie = `${encodeURIComponent(themeStorageKey)}=${encodeURIComponent(normalizedTheme)}; path=${themeCookiePath}; max-age=31536000; samesite=lax`;
+            writeThemeCookies(normalizedTheme, resolvedTheme);
 
             if (previousLayout !== resolvedLayout || shouldReloadForThemeAssets(previousResolvedTheme, resolvedTheme)) {
                 showPageLoader("Theme wird geladen...");
@@ -318,10 +337,32 @@ if (themeSelect) {
     const serverLayoutMismatch = layoutAfterInit !== serverLayout;
 
     if (serverThemeMismatch || serverResolvedMismatch || serverLayoutMismatch) {
-        document.cookie = `${encodeURIComponent(themeStorageKey)}=${encodeURIComponent(initialTheme)}; path=${themeCookiePath}; max-age=31536000; samesite=lax`;
-        if (serverLayoutMismatch || shouldReloadForThemeAssets(serverResolvedTheme, resolvedThemeAfterInit)) {
+        writeThemeCookies(initialTheme, resolvedThemeAfterInit);
+        const syncFingerprint = buildThemeSyncFingerprint(initialTheme, resolvedThemeAfterInit, layoutAfterInit);
+        let previousSyncFingerprint = "";
+
+        try {
+            previousSyncFingerprint = window.sessionStorage.getItem(themeSyncStorageKey) || "";
+        } catch (error) {
+            previousSyncFingerprint = "";
+        }
+
+        if ((serverLayoutMismatch || shouldReloadForThemeAssets(serverResolvedTheme, resolvedThemeAfterInit))
+            && previousSyncFingerprint !== syncFingerprint) {
+            try {
+                window.sessionStorage.setItem(themeSyncStorageKey, syncFingerprint);
+            } catch (error) {
+                // Ignore session storage failures and fall back to a normal reload attempt.
+            }
+
             showPageLoader("Theme wird geladen...");
             window.location.reload();
+        }
+    } else {
+        try {
+            window.sessionStorage.removeItem(themeSyncStorageKey);
+        } catch (error) {
+            // Ignore storage cleanup failures.
         }
     }
 
@@ -338,6 +379,7 @@ if (themeSelect) {
                 const previousLayout = root.dataset.themeLayout || "folio";
                 const previousResolvedTheme = root.dataset.themeResolved || resolveTheme("system");
                 applyThemeSelection("system");
+                writeThemeCookies("system", root.dataset.themeResolved || resolveTheme("system"));
                 if ((root.dataset.themeLayout || "folio") !== previousLayout
                     || shouldReloadForThemeAssets(previousResolvedTheme, root.dataset.themeResolved || resolveTheme("system"))) {
                     showPageLoader("Theme wird geladen...");
