@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 return array(
     'content' => array(
-        'root' => 'content/de',
+        'root' => 'content',
     ),
     'i18n' => array(
         'defaultLocale' => 'de',
@@ -15,13 +15,13 @@ return array(
             'de' => array(
                 'label' => 'Deutsch',
                 'content' => array(
-                    'root' => 'content/de',
+                    'root' => 'de',
                 ),
             ),
             'en' => array(
                 'label' => 'English',
                 'content' => array(
-                    'root' => 'content/en',
+                    'root' => 'en',
                 ),
                 'site' => array(
                     'lang' => 'en',
@@ -98,7 +98,7 @@ return array(
     'admin' => array(
         'enabled' => true,
         'title' => 'WorldMesh Admin Workspace',
-        'versionLabel' => 'v1.3.2',
+        'versionLabel' => 'v1.4',
         'username' => getenv('CMS_ADMIN_USERNAME') !== false ? (string) getenv('CMS_ADMIN_USERNAME') : 'admin',
         'password' => getenv('CMS_ADMIN_PASSWORD') !== false ? (string) getenv('CMS_ADMIN_PASSWORD') : '',
         'passwordHash' => getenv('CMS_ADMIN_PASSWORD_HASH') !== false ? (string) getenv('CMS_ADMIN_PASSWORD_HASH') : '',

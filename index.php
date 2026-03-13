@@ -873,6 +873,56 @@ function normalize_locale_key(string $locale): string
 }
 
 /**
+ * Normalizes a project-relative config path.
+ */
+function normalize_configured_project_path(string $path): string
+{
+    $path = str_replace('\\', '/', trim($path));
+    if ($path === '' || $path === '.') {
+        return '';
+    }
+
+    $segments = array();
+    foreach (explode('/', $path) as $segment) {
+        if ($segment === '' || $segment === '.') {
+            continue;
+        }
+
+        if ($segment === '..') {
+            array_pop($segments);
+            continue;
+        }
+
+        $segments[] = $segment;
+    }
+
+    return implode('/', $segments);
+}
+
+/**
+ * Resolves a locale content root against the configured base content root.
+ */
+function resolve_locale_content_root_path(string $baseRoot, string $localeRoot): string
+{
+    $baseRoot = normalize_configured_project_path($baseRoot);
+    $localeRoot = normalize_configured_project_path($localeRoot);
+
+    if ($localeRoot === '') {
+        return $baseRoot;
+    }
+
+    if ($baseRoot === '') {
+        return $localeRoot;
+    }
+
+    if (strpos($localeRoot, '/') !== false) {
+        return $localeRoot;
+    }
+
+    return normalize_configured_project_path($baseRoot . '/' . $localeRoot);
+}
+
+/**
  * Parses i18n settings.
  *
  * @return array<string, mixed>
@@ -880,6 +930,7 @@ function normalize_locale_key(string $locale): string
 function parse_i18n_settings(array $siteConfig): array
 {
     $i18nConfig = is_array($siteConfig['i18n'] ?? null) ? $siteConfig['i18n'] : array();
+    $defaultContentRoot = normalize_configured_project_path((string) (($siteConfig['content']['root'] ?? '')));
     $configuredLocales = is_array($i18nConfig['locales'] ?? null) ? $i18nConfig['locales'] : array();
     $locales = array();
 
@@ -894,12 +945,17 @@ function parse_i18n_settings(array $siteConfig): array
         }
 
         $contentConfig = is_array($localeConfig['content'] ?? null) ? $localeConfig['content'] : array();
+        $resolvedContentRoot = resolve_locale_content_root_path(
+            $defaultContentRoot,
+            (string) ($contentConfig['root'] ?? ($localeConfig['contentRoot'] ?? ''))
+        );
         $locales[$locale] = $localeConfig;
         $locales[$locale]['label'] = trim((string) ($localeConfig['label'] ?? strtoupper($locale)));
         $locales[$locale]['content'] = array_replace(
-            array('root' => ''),
+            array('root' => $resolvedContentRoot),
             $contentConfig
         );
+        $locales[$locale]['content']['root'] = $resolvedContentRoot;
     }
 
     ksort($locales, SORT_NATURAL | SORT_FLAG_CASE);
@@ -1021,7 +1077,10 @@ function resolve_locale_view_config(array $siteConfig, array $i18nSettings, stri
             is_array($siteConfig['ui'] ?? null) ? $siteConfig['ui'] : array(),
             is_array($localeConfig['ui'] ?? null) ? $localeConfig['ui'] : array()
         ),
-        'contentRoot' => trim((string) (($localeConfig['content']['root'] ?? ($siteConfig['content']['root'] ?? '')))),
+        'contentRoot' => resolve_locale_content_root_path(
+            (string) (($siteConfig['content']['root'] ?? '')),
+            (string) (($localeConfig['content']['root'] ?? ($localeConfig['contentRoot'] ?? '')))
+        ),
         'homePage' => $homePageConfig,
         'standalonePages' => is_array($localeConfig['standalonePages'] ?? null)
             ? $localeConfig['standalonePages']
@@ -1266,28 +1325,7 @@ function build_theme_asset_urls(string $basePath, ContentRepository $repository,
 function collect_git_managed_content_paths(array $siteConfig): array
 {
     $paths = array();
-    $normalizeProjectPath = static function (string $path): string {
-        $path = str_replace('\\', '/', trim($path));
-        if ($path === '' || $path === '.') {
-            return '';
-        }
-
-        $segments = array();
-        foreach (explode('/', $path) as $segment) {
-            if ($segment === '' || $segment === '.') {
-                continue;
-            }
-
-            if ($segment === '..') {
-                array_pop($segments);
-                continue;
-            }
-
-            $segments[] = $segment;
-        }
-
-        return implode('/', $segments);
-    };
+    $defaultContentRoot = normalize_configured_project_path((string) (($siteConfig['content']['root'] ?? '')));
 
     $i18nConfig = is_array($siteConfig['i18n'] ?? null) ? $siteConfig['i18n'] : array();
     $localeConfigs = is_array($i18nConfig['locales'] ?? null) ? $i18nConfig['locales'] : array();
@@ -1298,7 +1336,10 @@ function collect_git_managed_content_paths(array $siteConfig): array
         }
 
         $contentConfig = is_array($localeConfig['content'] ?? null) ? $localeConfig['content'] : array();
-        $contentRoot = $normalizeProjectPath((string) ($contentConfig['root'] ?? ($localeConfig['contentRoot'] ?? '')));
+        $contentRoot = resolve_locale_content_root_path(
+            $defaultContentRoot,
+            (string) ($contentConfig['root'] ?? ($localeConfig['contentRoot'] ?? ''))
+        );
         if ($contentRoot !== '') {
             $paths[$contentRoot] = $contentRoot;
         }
@@ -1306,7 +1347,7 @@ function collect_git_managed_content_paths(array $siteConfig): array
 
     if ($paths === array()) {
         $contentConfig = is_array($siteConfig['content'] ?? null) ? $siteConfig['content'] : array();
-        $contentRoot = $normalizeProjectPath((string) ($contentConfig['root'] ?? ''));
+        $contentRoot = normalize_configured_project_path((string) ($contentConfig['root'] ?? ''));
         if ($contentRoot !== '') {
             $paths[$contentRoot] = $contentRoot;
         }

@@ -2656,7 +2656,10 @@ final class ContentRepository
             }
 
             $contentConfig = is_array($localeConfig['content'] ?? null) ? $localeConfig['content'] : array();
-            $contentRoots[$locale] = $this->normalizePath((string) ($contentConfig['root'] ?? ($localeConfig['contentRoot'] ?? '')));
+            $contentRoots[$locale] = $this->resolveLocaleContentRoot(
+                $defaultRoot,
+                (string) ($contentConfig['root'] ?? ($localeConfig['contentRoot'] ?? ''))
+            );
             $normalizedLocales[$locale] = $localeConfig;
             $normalizedLocales[$locale]['label'] = trim((string) ($localeConfig['label'] ?? strtoupper($locale)));
         }
@@ -2715,6 +2718,29 @@ final class ContentRepository
 
         ksort($normalized, SORT_NATURAL | SORT_FLAG_CASE);
         return $normalized;
+    }
+
+    /**
+     * Resolves a locale content root against the configured base content root.
+     */
+    private function resolveLocaleContentRoot(string $defaultRoot, string $localeRoot): string
+    {
+        $defaultRoot = $this->normalizePath($defaultRoot);
+        $localeRoot = $this->normalizePath($localeRoot);
+
+        if ($localeRoot === '') {
+            return $defaultRoot;
+        }
+
+        if ($defaultRoot === '') {
+            return $localeRoot;
+        }
+
+        if (strpos($localeRoot, '/') !== false) {
+            return $localeRoot;
+        }
+
+        return $this->normalizePath($defaultRoot . '/' . $localeRoot);
     }
 
     /**

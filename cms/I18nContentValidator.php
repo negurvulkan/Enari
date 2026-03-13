@@ -501,6 +501,7 @@ final class I18nContentValidator
     private function parseI18nSettings(array $siteConfig): array
     {
         $i18nConfig = is_array($siteConfig['i18n'] ?? null) ? $siteConfig['i18n'] : array();
+        $defaultContentRoot = $this->normalizePath((string) (($siteConfig['content']['root'] ?? '')));
         $configuredLocales = is_array($i18nConfig['locales'] ?? null) ? $i18nConfig['locales'] : array();
         $locales = array();
 
@@ -515,12 +516,17 @@ final class I18nContentValidator
             }
 
             $contentConfig = is_array($localeConfig['content'] ?? null) ? $localeConfig['content'] : array();
+            $resolvedContentRoot = $this->resolveLocaleContentRoot(
+                $defaultContentRoot,
+                (string) ($contentConfig['root'] ?? ($localeConfig['contentRoot'] ?? ''))
+            );
             $locales[$locale] = $localeConfig;
             $locales[$locale]['label'] = trim((string) ($localeConfig['label'] ?? strtoupper($locale)));
             $locales[$locale]['content'] = array_replace(
-                array('root' => ''),
+                array('root' => $resolvedContentRoot),
                 $contentConfig
             );
+            $locales[$locale]['content']['root'] = $resolvedContentRoot;
         }
 
         if ($locales === array()) {
@@ -543,6 +549,29 @@ final class I18nContentValidator
             'defaultLocale' => $defaultLocale,
             'locales' => $locales,
         );
+    }
+
+    /**
+     * Resolves a locale content root against the configured base content root.
+     */
+    private function resolveLocaleContentRoot(string $defaultRoot, string $localeRoot): string
+    {
+        $defaultRoot = $this->normalizePath($defaultRoot);
+        $localeRoot = $this->normalizePath($localeRoot);
+
+        if ($localeRoot === '') {
+            return $defaultRoot;
+        }
+
+        if ($defaultRoot === '') {
+            return $localeRoot;
+        }
+
+        if (strpos($localeRoot, '/') !== false) {
+            return $localeRoot;
+        }
+
+        return $this->normalizePath($defaultRoot . '/' . $localeRoot);
     }
 
     /**

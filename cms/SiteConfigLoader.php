@@ -90,7 +90,7 @@ final class SiteConfigLoader
         self::validateModules($basePath, (array) ($config['modules'] ?? array()), $errors);
         self::validateAdminTheme($basePath, (array) ($config['admin'] ?? array()), $errors);
         self::validatePreviewTheme($basePath, (array) ($config['admin'] ?? array()), $errors);
-        self::validateI18n($basePath, (array) ($config['i18n'] ?? array()), $errors);
+        self::validateI18n($basePath, $config, $errors);
         self::validateAdminGit($basePath, (array) ($config['admin'] ?? array()), $errors);
 
         return array(
@@ -174,13 +174,15 @@ final class SiteConfigLoader
     /**
      * Validates i18n roots and locale-specific pages.
      *
-     * @param array<string, mixed> $i18nConfig
+     * @param array<string, mixed> $config
      * @param array<int, string> $errors
      */
-    private static function validateI18n(string $basePath, array $i18nConfig, array &$errors): void
+    private static function validateI18n(string $basePath, array $config, array &$errors): void
     {
+        $i18nConfig = is_array($config['i18n'] ?? null) ? $config['i18n'] : array();
         $locales = is_array($i18nConfig['locales'] ?? null) ? $i18nConfig['locales'] : array();
         $defaultLocale = trim((string) ($i18nConfig['defaultLocale'] ?? ''));
+        $contentBaseRoot = self::nestedString($config, array('content', 'root'));
 
         if ($locales === array()) {
             $errors[] = 'i18n.locales muss mindestens eine Locale enthalten.';
@@ -199,13 +201,20 @@ final class SiteConfigLoader
                 continue;
             }
 
-            self::validateDirectoryPath(
-                $basePath,
-                $localeConfig,
-                array('content', 'root'),
-                'i18n.locales.' . $locale . '.content.root',
-                $errors
+            $contentConfig = is_array($localeConfig['content'] ?? null) ? $localeConfig['content'] : array();
+            $resolvedLocaleRoot = self::resolveLocaleContentRoot(
+                $contentBaseRoot,
+                (string) ($contentConfig['root'] ?? ($localeConfig['contentRoot'] ?? ''))
             );
+            if ($resolvedLocaleRoot === '') {
+                $errors[] = 'i18n.locales.' . $locale . '.content.root darf nicht leer sein.';
+            } else {
+                $fullPath = self::resolvePath($basePath, $resolvedLocaleRoot);
+                if (!is_dir($fullPath)) {
+                    $errors[] = 'i18n.locales.' . $locale . '.content.root fehlt oder ist kein Verzeichnis: '
+                        . self::normalizeRelativePath($resolvedLocaleRoot);
+                }
+            }
 
             if (is_array($localeConfig['homePage'] ?? null)) {
                 self::validateFilePath(
@@ -401,6 +410,29 @@ final class SiteConfigLoader
     }
 
     /**
+     * Resolves a locale content root against the configured base content root.
+     */
+    private static function resolveLocaleContentRoot(string $baseRoot, string $localeRoot): string
+    {
+        $baseRoot = self::normalizeConfigPath($baseRoot);
+        $localeRoot = self::normalizeConfigPath($localeRoot);
+
+        if ($localeRoot === '') {
+            return $baseRoot;
+        }
+
+        if ($baseRoot === '') {
+            return $localeRoot;
+        }
+
+        if (strpos($localeRoot, '/') !== false) {
+            return $localeRoot;
+        }
+
+        return self::normalizeConfigPath($baseRoot . '/' . $localeRoot);
+    }
+
+    /**
      * Validates a file path config entry.
      *
      * @param array<string, mixed> $config
@@ -455,7 +487,7 @@ final class SiteConfigLoader
      */
     private static function resolvePath(string $basePath, string $path): string
     {
-        $normalized = str_replace('\\', '/', trim($path));
+        $normalized = self::normalizeConfigPath($path);
         if ($normalized === '') {
             return rtrim(str_replace('\\', '/', $basePath), '/');
         }
@@ -465,6 +497,33 @@ final class SiteConfigLoader
         }
 
         return rtrim(str_replace('\\', '/', $basePath), '/') . '/' . ltrim($normalized, '/');
+    }
+
+    /**
+     * Normalizes a project-relative config path.
+     */
+    private static function normalizeConfigPath(string $path): string
+    {
+        $normalized = str_replace('\\', '/', trim($path));
+        if ($normalized === '' || $normalized === '.') {
+            return '';
+        }
+
+        $segments = array();
+        foreach (explode('/', $normalized) as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+
+            if ($segment === '..') {
+                array_pop($segments);
+                continue;
+            }
+
+            $segments[] = $segment;
+        }
+
+        return implode('/', $segments);
     }
 
     /**
