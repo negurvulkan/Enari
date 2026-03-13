@@ -1260,10 +1260,10 @@ function build_theme_asset_urls(string $basePath, ContentRepository $repository,
 /**
  * Collects the content roots configured in site.config.php for the content Git workspace.
  *
- * @param array<string, string> $contentRootsByLocale
+ * @param array<string, mixed> $siteConfig
  * @return string[]
  */
-function collect_git_managed_content_paths(array $contentRootsByLocale): array
+function collect_git_managed_content_paths(array $siteConfig): array
 {
     $paths = array();
     $normalizeProjectPath = static function (string $path): string {
@@ -1289,12 +1289,24 @@ function collect_git_managed_content_paths(array $contentRootsByLocale): array
         return implode('/', $segments);
     };
 
-    foreach ($contentRootsByLocale as $contentRoot) {
-        if (!is_string($contentRoot)) {
+    $i18nConfig = is_array($siteConfig['i18n'] ?? null) ? $siteConfig['i18n'] : array();
+    $localeConfigs = is_array($i18nConfig['locales'] ?? null) ? $i18nConfig['locales'] : array();
+
+    foreach ($localeConfigs as $localeConfig) {
+        if (!is_array($localeConfig)) {
             continue;
         }
 
-        $contentRoot = $normalizeProjectPath($contentRoot);
+        $contentConfig = is_array($localeConfig['content'] ?? null) ? $localeConfig['content'] : array();
+        $contentRoot = $normalizeProjectPath((string) ($contentConfig['root'] ?? ($localeConfig['contentRoot'] ?? '')));
+        if ($contentRoot !== '') {
+            $paths[$contentRoot] = $contentRoot;
+        }
+    }
+
+    if ($paths === array()) {
+        $contentConfig = is_array($siteConfig['content'] ?? null) ? $siteConfig['content'] : array();
+        $contentRoot = $normalizeProjectPath((string) ($contentConfig['root'] ?? ''));
         if ($contentRoot !== '') {
             $paths[$contentRoot] = $contentRoot;
         }
@@ -1624,7 +1636,7 @@ $adminWorkspace = new AdminWorkspace(
     new GitWorkspace(
         __DIR__,
         is_array($adminSettings['git'] ?? null) ? $adminSettings['git'] : array(),
-        collect_git_managed_content_paths($repository->getContentRootsByLocale())
+        collect_git_managed_content_paths($siteConfig)
     ),
     $mermaidClientConfig,
     $cytoscapeClientConfig,

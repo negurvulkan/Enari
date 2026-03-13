@@ -345,7 +345,7 @@ final class AdminWorkspace
     private function normalizeConfig(array $adminConfig): array
     {
         $title = trim((string) ($adminConfig['title'] ?? 'CMS Workspace'));
-        $versionLabel = trim((string) ($adminConfig['versionLabel'] ?? 'v1.3.1'));
+        $versionLabel = trim((string) ($adminConfig['versionLabel'] ?? 'v1.3.2'));
         $username = trim((string) ($adminConfig['username'] ?? 'admin'));
         $password = (string) ($adminConfig['password'] ?? '');
         $passwordHash = trim((string) ($adminConfig['passwordHash'] ?? ''));
@@ -362,7 +362,7 @@ final class AdminWorkspace
         return array(
             'enabled' => !array_key_exists('enabled', $adminConfig) || !empty($adminConfig['enabled']),
             'title' => $title !== '' ? $title : 'CMS Workspace',
-            'versionLabel' => $versionLabel !== '' ? $versionLabel : 'v1.3.1',
+            'versionLabel' => $versionLabel !== '' ? $versionLabel : 'v1.3.2',
             'username' => $username !== '' ? $username : 'admin',
             'password' => $password,
             'passwordHash' => $passwordHash,
@@ -649,7 +649,7 @@ final class AdminWorkspace
         $bootstrap = $this->buildBootstrapPayload();
         $bootstrapJson = json_encode($bootstrap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         $title = (string) ($this->config['title'] ?? 'CMS Workspace');
-        $versionLabel = (string) ($this->config['versionLabel'] ?? 'v1.3.1');
+        $versionLabel = (string) ($this->config['versionLabel'] ?? 'v1.3.2');
         $adminTheme = $this->resolveAdminThemeKey();
         $previewTheme = $this->normalizeThemeKey((string) ($this->config['previewTheme'] ?? 'parchment'));
         if ($previewTheme === '') {

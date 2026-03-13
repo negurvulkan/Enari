@@ -90,6 +90,12 @@ final class GitWorkspace
             'managedPaths' => $this->managedProjectPathsForClient(),
             'repositoryState' => (string) ($repositoryState['id'] ?? 'unconfigured'),
             'setupMode' => (string) ($repositoryState['setupMode'] ?? ''),
+            'nextAction' => $this->buildNextActionHint(array(
+                'enabled' => $this->isEnabled(),
+                'repositoryState' => (string) ($repositoryState['id'] ?? 'unconfigured'),
+                'setupMode' => (string) ($repositoryState['setupMode'] ?? ''),
+                'allowRemoteSetup' => !empty($this->config['allowRemoteSetup']),
+            )),
         );
     }
 
@@ -124,25 +130,30 @@ final class GitWorkspace
             'allowPull' => !array_key_exists('allowPull', $this->config) || !empty($this->config['allowPull']),
             'allowPush' => !array_key_exists('allowPush', $this->config) || !empty($this->config['allowPush']),
             'mergeSession' => null,
+            'nextAction' => null,
         );
 
         if (!$this->isEnabled()) {
             $status['message'] = 'Git-Integration ist deaktiviert.';
+            $status['nextAction'] = $this->buildNextActionHint($status);
             return $status;
         }
 
         if (!$this->isContentRepositoryConfigured()) {
             $status['message'] = 'Bitte ein separates Content-Repository konfigurieren. Das CMS-Hauptrepo wird bewusst nicht synchronisiert.';
+            $status['nextAction'] = $this->buildNextActionHint($status);
             return $status;
         }
 
         if ($this->managedRepoPaths === array()) {
             $status['message'] = 'Es wurden keine verwalteten Content-Pfade im konfigurierten Content-Repository gefunden.';
+            $status['nextAction'] = $this->buildNextActionHint($status);
             return $status;
         }
 
         if (!$this->isGitAvailable()) {
             $status['message'] = 'Git ist auf diesem Server nicht verfuegbar.';
+            $status['nextAction'] = $this->buildNextActionHint($status);
             return $status;
         }
 
@@ -155,6 +166,7 @@ final class GitWorkspace
 
         if (($repositoryState['id'] ?? '') !== 'ready') {
             $status['message'] = $this->repositoryStateMessage($repositoryState);
+            $status['nextAction'] = $this->buildNextActionHint($status);
             return $status;
         }
 
@@ -186,6 +198,8 @@ final class GitWorkspace
         } else {
             $status['message'] = 'Repository ist synchronisiert oder bereit fuer den naechsten Sync.';
         }
+
+        $status['nextAction'] = $this->buildNextActionHint($status);
 
         return $status;
     }
@@ -239,10 +253,22 @@ final class GitWorkspace
             );
         }
 
+        $initialSync = $this->synchronizeUnbornBranchFromRemote($remoteName, $branch);
+        if (empty($initialSync['ok'])) {
+            return $this->errorResult(
+                (string) ($initialSync['message'] ?? 'Der erste Remote-Abgleich konnte nicht vorbereitet werden.'),
+                isset($initialSync['command']) && is_array($initialSync['command']) ? $initialSync['command'] : null,
+                $this->status()
+            );
+        }
+
         return array(
             'ok' => true,
-            'message' => 'Remote-Konfiguration aktualisiert.',
+            'message' => !empty($initialSync['synced'])
+                ? 'Remote-Konfiguration aktualisiert und Remote-Content fuer den ersten Abgleich ausgecheckt.'
+                : 'Remote-Konfiguration aktualisiert.',
             'status' => $this->status(),
+            'shouldReload' => !empty($initialSync['synced']),
         );
     }
 
@@ -383,6 +409,29 @@ final class GitWorkspace
         $upstream = $status['upstream'] !== ''
             ? (string) $status['upstream']
             : ((string) ($status['remoteName'] ?? 'origin')) . '/' . ((string) ($this->config['defaultBranch'] ?? 'main'));
+
+        if (!$this->hasLocalHeadCommit()) {
+            $initialSync = $this->synchronizeUnbornBranchFromRemote(
+                (string) ($status['remoteName'] ?? 'origin'),
+                (string) ($this->config['defaultBranch'] ?? 'main')
+            );
+            if (empty($initialSync['ok'])) {
+                return $this->errorResult(
+                    (string) ($initialSync['message'] ?? 'Der erste Pull fuer das lokale Content-Repository ist fehlgeschlagen.'),
+                    isset($initialSync['command']) && is_array($initialSync['command']) ? $initialSync['command'] : null,
+                    $this->status()
+                );
+            }
+
+            if (!empty($initialSync['synced'])) {
+                return array(
+                    'ok' => true,
+                    'message' => 'Remote-Aenderungen wurden fuer das lokale Content-Repository erstmalig uebernommen.',
+                    'status' => $this->status(),
+                    'shouldReload' => true,
+                );
+            }
+        }
 
         if (($status['behind'] ?? 0) <= 0) {
             return array(
@@ -1191,6 +1240,128 @@ final class GitWorkspace
     }
 
     /**
+     * Builds a user-facing hint for the next recommended Git action.
+     *
+     * @param array<string, mixed> $status
+     * @return array<string, string>|null
+     */
+    private function buildNextActionHint(array $status): ?array
+    {
+        if (empty($status['enabled'])) {
+            return null;
+        }
+
+        $repositoryState = (string) ($status['repositoryState'] ?? 'unconfigured');
+        $setupMode = (string) ($status['setupMode'] ?? '');
+        $remoteName = (string) ($status['remoteName'] ?? ($this->config['remoteName'] ?? 'origin'));
+        $defaultBranch = (string) ($this->config['defaultBranch'] ?? 'main');
+        $hasRemote = trim((string) ($status['remoteUrl'] ?? '')) !== '';
+        $hasLocalHead = $this->hasLocalHeadCommit();
+        $remoteBranchKnown = $hasRemote && $this->remoteBranchExists($remoteName . '/' . $defaultBranch);
+
+        if ($repositoryState !== 'ready') {
+            if ($setupMode === 'clone') {
+                return array(
+                    'id' => 'setup-remote',
+                    'label' => 'Content-Remote einrichten',
+                    'title' => 'Remote in das leere Content-Verzeichnis klonen',
+                    'description' => 'Der konfigurierte Content-Pfad ist leer. Mit "Content-Remote einrichten" wird der bestehende Branch ' . $defaultBranch . ' aus dem Remote direkt nach ' . $this->displayRepositoryRoot() . ' geklont.',
+                );
+            }
+
+            if ($setupMode === 'initialize') {
+                return array(
+                    'id' => 'setup-remote',
+                    'label' => 'Content-Remote einrichten',
+                    'title' => 'Lokalen Content als eigenes Repository initialisieren',
+                    'description' => 'Im Content-Pfad liegen bereits Dateien. Mit "Content-Remote einrichten" wird daraus zuerst ein eigenes Content-Repository gemacht und danach das Remote verbunden.',
+                );
+            }
+
+            return null;
+        }
+
+        if (!$hasRemote) {
+            return array(
+                'id' => 'setup-remote',
+                'label' => 'Content-Remote einrichten',
+                'title' => 'Remote-URL hinterlegen',
+                'description' => 'Das lokale Content-Repository ist bereit, hat aber noch kein Remote. Hinterlege jetzt die Git-URL des Content-Repositories.',
+            );
+        }
+
+        if (!$hasLocalHead && $remoteBranchKnown) {
+            return array(
+                'id' => 'pull',
+                'label' => 'Pull',
+                'title' => 'Ersten Remote-Stand in das lokale Content-Repository uebernehmen',
+                'description' => 'Das Remote kennt bereits den Branch ' . $defaultBranch . ', lokal gibt es aber noch keinen eigenen Commit. Ein Pull uebernimmt jetzt den vorhandenen Remote-Stand als ersten lokalen Inhalt.',
+            );
+        }
+
+        if (!$hasLocalHead && !$remoteBranchKnown) {
+            return array(
+                'id' => 'commit',
+                'label' => 'Commit',
+                'title' => 'Ersten lokalen Content-Stand committen',
+                'description' => 'Das lokale Content-Repository hat noch keinen Commit und im Remote wurde noch kein Branch ' . $defaultBranch . ' erkannt. Erstelle zuerst einen Commit und pushe ihn danach ins Remote.',
+            );
+        }
+
+        if (!empty($status['mergeSession']) || !empty($status['mergeInProgress'])) {
+            return array(
+                'id' => 'merge',
+                'label' => 'Merge fortsetzen',
+                'title' => 'Offenen Merge zuerst abschliessen',
+                'description' => 'Bevor weitere Sync-Aktionen moeglich sind, muss der laufende Merge abgeschlossen oder abgebrochen werden.',
+            );
+        }
+
+        if (!empty($status['dirty'])) {
+            return array(
+                'id' => 'commit',
+                'label' => 'Commit',
+                'title' => 'Lokale Content-Aenderungen committen',
+                'description' => 'Im verwalteten Content-Repository liegen lokale Aenderungen. Committe sie zuerst, bevor du pullst oder pushst.',
+            );
+        }
+
+        if ((int) ($status['behind'] ?? 0) > 0) {
+            return array(
+                'id' => 'pull',
+                'label' => 'Pull',
+                'title' => 'Neue Remote-Aenderungen uebernehmen',
+                'description' => 'Das Remote ist dem lokalen Stand voraus. Ein Pull uebernimmt jetzt die neuen Content-Aenderungen aus dem Remote-Repository.',
+            );
+        }
+
+        if ((int) ($status['ahead'] ?? 0) > 0) {
+            return array(
+                'id' => 'push',
+                'label' => 'Push',
+                'title' => 'Lokale Commits ins Remote uebertragen',
+                'description' => 'Der lokale Content-Branch hat Commits, die noch nicht im Remote sind. Mit Push werden sie hochgeladen.',
+            );
+        }
+
+        if (empty($status['upstream']) && $remoteBranchKnown) {
+            return array(
+                'id' => 'fetch',
+                'label' => 'Fetch',
+                'title' => 'Remote-Tracking aktualisieren',
+                'description' => 'Das Repository ist bereits verbunden. Ein Fetch aktualisiert die Remote-Refs und bereitet den naechsten Pull oder Push vor.',
+            );
+        }
+
+        return array(
+            'id' => 'review',
+            'label' => 'Review',
+            'title' => 'Repository ist bereit fuer den naechsten Sync',
+            'description' => 'Der Content-Stand ist aktuell synchron oder sauber vorbereitet. Du kannst jetzt Review, neue Commits oder weitere Sync-Schritte starten.',
+        );
+    }
+
+    /**
      * Prepares a first-time content repository from the configured directory and remote URL.
      *
      * @param array<string, mixed> $repositoryState
@@ -1462,6 +1633,46 @@ final class GitWorkspace
         if (($remoteBranchExists['exitCode'] ?? 1) === 0) {
             $this->runGit(array('branch', '--set-upstream-to', $remoteName . '/' . $branch, $currentBranch));
         }
+    }
+
+    /**
+     * Determines whether the repository already has a local HEAD commit.
+     */
+    private function hasLocalHeadCommit(): bool
+    {
+        $result = $this->runGit(array('rev-parse', '--verify', 'HEAD'));
+        return ($result['exitCode'] ?? 1) === 0;
+    }
+
+    /**
+     * Checks out the configured remote branch into an unborn local repository after the first fetch.
+     *
+     * @return array<string, mixed>
+     */
+    private function synchronizeUnbornBranchFromRemote(string $remoteName, string $branch): array
+    {
+        if ($branch === '' || $this->hasLocalHeadCommit()) {
+            return array('ok' => true, 'synced' => false);
+        }
+
+        $remoteBranchExists = $this->runGit(array('show-ref', '--verify', '--quiet', 'refs/remotes/' . $remoteName . '/' . $branch));
+        if (($remoteBranchExists['exitCode'] ?? 1) !== 0) {
+            return array('ok' => true, 'synced' => false);
+        }
+
+        $checkout = $this->runGit(array('checkout', '-B', $branch, '--track', $remoteName . '/' . $branch));
+        if (($checkout['exitCode'] ?? 1) !== 0) {
+            return array(
+                'ok' => false,
+                'message' => 'Der Remote-Branch konnte nicht als erster lokaler Stand uebernommen werden.',
+                'command' => $checkout,
+            );
+        }
+
+        return array(
+            'ok' => true,
+            'synced' => true,
+        );
     }
 
     /**

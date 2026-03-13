@@ -51,6 +51,7 @@
  * @property {Array<object>} files
  * @property {object|null} mergeSession
  * @property {object} review
+ * @property {{id: string, label: string, title: string, description: string}|null} nextAction
  */
 
 (() => {
@@ -1658,6 +1659,26 @@
     };
 
     /**
+     * Maps Git next-action IDs to existing workspace buttons.
+     *
+     * @param {string} actionId
+     * @returns {string}
+     */
+    const describeGitActionButton = (actionId) => {
+        const labels = {
+            "setup-remote": "Content-Remote einrichten",
+            fetch: "Fetch",
+            pull: "Pull",
+            push: "Push",
+            commit: "Commit",
+            review: "Review",
+            merge: "Merge fortsetzen",
+        };
+
+        return labels[actionId] || "Git-Aktion";
+    };
+
+    /**
      * Updates button availability for the Git workspace controls.
      */
     const updateGitControls = () => {
@@ -1853,6 +1874,7 @@
 
         const remoteLabel = status.remoteUrl ? escapeHtml(status.remoteUrl) : "Noch kein Remote";
         const setupMode = status.setupMode || "";
+        const nextAction = status.nextAction || state.gitConfig?.nextAction || null;
         const syncLabel = status.isRepository
             ? `${status.branch || "(detached)"} · ahead ${status.ahead || 0} / behind ${status.behind || 0}`
             : (setupMode === "clone"
@@ -1895,6 +1917,13 @@
                     <p class="admin-status__title">${publish.canPush ? "Push-bereit" : (publish.canCommit ? "Commit-bereit" : "Review offen")}</p>
                     <p class="admin-document__meta">${publish.hasManagedChanges ? "Verwaltete Aenderungen vorhanden" : "Keine verwalteten Content-Aenderungen"}</p>
                 </article>
+                ${nextAction ? `
+                <article class="admin-status">
+                    <p class="admin-status-list__eyebrow">Naechster Schritt</p>
+                    <p class="admin-status__title">${escapeHtml(nextAction.title || nextAction.label || "Git-Aktion")}</p>
+                    <p class="admin-document__meta">${escapeHtml(nextAction.description || "")}${nextAction.id ? ` · Button: ${escapeHtml(describeGitActionButton(nextAction.id))}` : ""}</p>
+                </article>
+                ` : ""}
                 ${!status.isRepository && setupMode ? `
                 <article class="admin-status">
                     <p class="admin-status-list__eyebrow">Erst-Setup</p>
@@ -3114,6 +3143,7 @@
         canClone: false,
         remoteName: state.gitConfig?.remoteName || "origin",
         remoteUrl: "",
+        nextAction: state.gitConfig?.nextAction || null,
         branch: "",
         upstream: "",
         ahead: 0,
