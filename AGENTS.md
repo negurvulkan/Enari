@@ -23,7 +23,7 @@ Never assume a rule from memory if it can be confirmed by reading one of these f
 Choose the area by intent, not by file extension.
 
 - Use `content/` for normal archive pages and directory overview pages.
-- Use `cms/pages/` for standalone service or policy pages that are wired through config rather than directory navigation.
+- Use `pages/` for standalone service or policy pages that are wired through config rather than directory navigation.
 - Use `config/schema/` for new or changed types, fields, and relation definitions.
 - Use `themes/` for page-shell layout, theme components, and theme-specific assets.
 - Use `cms/type-templates/` for typed document body rendering inside the existing theme shell.
@@ -102,7 +102,7 @@ Before creating a new type, relation, theme, or template, confirm:
 See the nested guides for area-specific rules:
 
 - `content/AGENTS.md`
-- `cms/pages/AGENTS.md`
+- `pages/AGENTS.md`
 - `config/schema/AGENTS.md`
 - `themes/AGENTS.md`
 - `cms/type-templates/AGENTS.md`

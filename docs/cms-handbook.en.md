@@ -27,7 +27,7 @@ The most important rule is to organize work by purpose, not by file extension.
 `content/`
 : normal archive pages, directory overviews, and localized content trees
 
-`cms/pages/`
+`pages/`
 : standalone pages such as the home page, imprint, privacy policy, or other explicitly configured pages
 
 `config/schema/`
@@ -136,9 +136,9 @@ If both pages describe the same concept, they must share the same `translation_k
 
 The CMS does not silently map any unknown localized path to the default language. Fallback only applies when the translation group is already known, for example through the language switcher or a link tied to a known translation key.
 
-## 5. Standalone Pages in `cms/pages/`
+## 5. Standalone Pages in `pages/`
 
-Not every page belongs in the normal archive tree. `cms/pages/` is for pages that are explicitly wired through configuration.
+Not every page belongs in the normal archive tree. `pages/` is for pages that are explicitly wired through configuration.
 
 Typical examples:
 
@@ -149,7 +149,7 @@ Typical examples:
 
 Important:
 
-- A file inside `cms/pages/` is not enough on its own.
+- A file inside `pages/` is not enough on its own.
 - The page also has to be registered in the local `site.config.php`.
 - The slug, footer/sidebar placement, and locale-specific variants come from configuration, not from folder structure.
 

@@ -1,0 +1,72 @@
+:root[data-admin-theme-resolved="admin-cinder"] {
+    --admin-bg: #1b120d;
+    --admin-panel: rgba(44, 27, 18, 0.9);
+    --admin-panel-strong: rgba(58, 33, 20, 0.96);
+    --admin-line: rgba(255, 195, 132, 0.18);
+    --admin-text: #fff5ea;
+    --admin-muted: #c9a78a;
+    --admin-accent: #ffb35b;
+    --admin-accent-strong: #d46a2b;
+    --admin-good: #7fd1a6;
+    --admin-warn: #ffd57c;
+    --admin-bad: #ff8a7a;
+    --admin-shadow: 0 1.9rem 4rem rgba(22, 10, 5, 0.4);
+    --admin-font: "Georgia", "Trebuchet MS", serif;
+    --admin-mono: "Cascadia Code", "Consolas", monospace;
+    --admin-radius: 1.05rem;
+}
+
+:root[data-admin-theme-resolved="admin-cinder"] body.admin-app-page,
+:root[data-admin-theme-resolved="admin-cinder"] body.admin-auth-page {
+    background:
+        radial-gradient(circle at top, rgba(212, 106, 43, 0.2), transparent 24rem),
+        radial-gradient(circle at bottom right, rgba(255, 179, 91, 0.18), transparent 28rem),
+        linear-gradient(180deg, #23150e 0%, #130b07 100%);
+}
+
+:root[data-admin-theme-resolved="admin-cinder"] body.admin-app-page::before,
+:root[data-admin-theme-resolved="admin-cinder"] body.admin-auth-page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(255, 179, 91, 0.08), transparent 16rem),
+        radial-gradient(circle at 80% 15%, rgba(212, 106, 43, 0.12), transparent 18rem),
+        radial-gradient(circle at 50% 100%, rgba(255, 213, 124, 0.07), transparent 20rem);
+}
+
+:root[data-admin-theme-resolved="admin-cinder"] .admin-auth,
+:root[data-admin-theme-resolved="admin-cinder"] .admin-app {
+    position: relative;
+    z-index: 1;
+}
+
+:root[data-admin-theme-resolved="admin-cinder"] .admin-header,
+:root[data-admin-theme-resolved="admin-cinder"] .admin-sidebar,
+:root[data-admin-theme-resolved="admin-cinder"] .admin-toolbar,
+:root[data-admin-theme-resolved="admin-cinder"] .admin-workspace-nav,
+:root[data-admin-theme-resolved="admin-cinder"] .admin-panel,
+:root[data-admin-theme-resolved="admin-cinder"] .admin-auth__panel {
+    border-color: rgba(255, 188, 122, 0.14);
+    background: linear-gradient(180deg, rgba(60, 36, 23, 0.92), rgba(36, 21, 15, 0.92));
+}
+
+:root[data-admin-theme-resolved="admin-cinder"] .admin-header {
+    box-shadow: inset 0 -1px 0 rgba(255, 179, 91, 0.12);
+}
+
+:root[data-admin-theme-resolved="admin-cinder"] .admin-button--primary {
+    box-shadow: 0 0.75rem 1.8rem rgba(212, 106, 43, 0.24);
+}
+
+:root[data-admin-theme-resolved="admin-cinder"] .admin-tab.is-active,
+:root[data-admin-theme-resolved="admin-cinder"] .admin-document.is-active {
+    box-shadow: inset 0 0 0 1px rgba(255, 179, 91, 0.24), 0 0.8rem 2rem rgba(67, 31, 14, 0.22);
+}
+
+:root[data-admin-theme-resolved="admin-cinder"] .admin-header__title,
+:root[data-admin-theme-resolved="admin-cinder"] .admin-auth__title,
+:root[data-admin-theme-resolved="admin-cinder"] .admin-panel__header h3 {
+    letter-spacing: 0.01em;
+}

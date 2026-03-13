@@ -1,0 +1,26 @@
+:root[data-admin-theme-resolved="admin-atlas"] .theme-loader--admin {
+    --theme-loader-overlay: rgba(5, 13, 24, 0.88);
+    --theme-loader-panel-bg: rgba(9, 26, 40, 0.94);
+    --theme-loader-panel-border: rgba(104, 211, 255, 0.16);
+    --theme-loader-text: #edf8ff;
+    --theme-loader-muted: #8fb6cb;
+    --theme-loader-accent: #68d3ff;
+    --theme-loader-accent-soft: #88f0ff;
+    --theme-loader-core-shadow: rgba(47, 132, 255, 0.32);
+}
+
+:root[data-admin-theme-resolved="admin-atlas"] .theme-loader__stage {
+    border-radius: 22%;
+    clip-path: polygon(24% 6%, 76% 6%, 100% 50%, 76% 94%, 24% 94%, 0% 50%);
+}
+
+:root[data-admin-theme-resolved="admin-atlas"] .theme-loader__stage::before,
+:root[data-admin-theme-resolved="admin-atlas"] .theme-loader__ring {
+    border-radius: 22%;
+    clip-path: polygon(24% 6%, 76% 6%, 100% 50%, 76% 94%, 24% 94%, 0% 50%);
+}
+
+:root[data-admin-theme-resolved="admin-atlas"] .theme-loader__core {
+    border-radius: 18%;
+    clip-path: polygon(24% 6%, 76% 6%, 100% 50%, 76% 94%, 24% 94%, 0% 50%);
+}

@@ -1,0 +1,72 @@
+:root[data-admin-theme-resolved="admin-atlas"] {
+    --admin-bg: #071522;
+    --admin-panel: rgba(10, 26, 41, 0.88);
+    --admin-panel-strong: rgba(11, 34, 54, 0.95);
+    --admin-line: rgba(111, 204, 255, 0.2);
+    --admin-text: #edf8ff;
+    --admin-muted: #8fb6cb;
+    --admin-accent: #68d3ff;
+    --admin-accent-strong: #2f84ff;
+    --admin-good: #62d9a1;
+    --admin-warn: #ffca74;
+    --admin-bad: #ff7d9e;
+    --admin-shadow: 0 1.8rem 4rem rgba(0, 11, 24, 0.38);
+    --admin-font: "Aptos", "Segoe UI", "Trebuchet MS", sans-serif;
+    --admin-mono: "Cascadia Code", "Consolas", monospace;
+}
+
+:root[data-admin-theme-resolved="admin-atlas"] body.admin-app-page,
+:root[data-admin-theme-resolved="admin-atlas"] body.admin-auth-page {
+    background:
+        radial-gradient(circle at top left, rgba(85, 188, 255, 0.18), transparent 28rem),
+        linear-gradient(180deg, #091521 0%, #050c14 100%);
+}
+
+:root[data-admin-theme-resolved="admin-atlas"] body.admin-app-page::before,
+:root[data-admin-theme-resolved="admin-atlas"] body.admin-auth-page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(rgba(104, 211, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(104, 211, 255, 0.04) 1px, transparent 1px);
+    background-size: 2.6rem 2.6rem;
+    mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.9), transparent 78%);
+    opacity: 0.8;
+}
+
+:root[data-admin-theme-resolved="admin-atlas"] .admin-auth,
+:root[data-admin-theme-resolved="admin-atlas"] .admin-app {
+    position: relative;
+    z-index: 1;
+}
+
+:root[data-admin-theme-resolved="admin-atlas"] .admin-header,
+:root[data-admin-theme-resolved="admin-atlas"] .admin-sidebar,
+:root[data-admin-theme-resolved="admin-atlas"] .admin-toolbar,
+:root[data-admin-theme-resolved="admin-atlas"] .admin-workspace-nav,
+:root[data-admin-theme-resolved="admin-atlas"] .admin-panel,
+:root[data-admin-theme-resolved="admin-atlas"] .admin-auth__panel {
+    backdrop-filter: blur(20px);
+    border-color: rgba(124, 214, 255, 0.14);
+}
+
+:root[data-admin-theme-resolved="admin-atlas"] .admin-header {
+    background: linear-gradient(135deg, rgba(14, 39, 63, 0.94), rgba(7, 21, 34, 0.9));
+}
+
+:root[data-admin-theme-resolved="admin-atlas"] .admin-button--primary {
+    box-shadow: 0 0.75rem 1.8rem rgba(47, 132, 255, 0.22);
+}
+
+:root[data-admin-theme-resolved="admin-atlas"] .admin-tab.is-active,
+:root[data-admin-theme-resolved="admin-atlas"] .admin-document.is-active {
+    box-shadow: inset 0 0 0 1px rgba(104, 211, 255, 0.28), 0 0.8rem 2rem rgba(13, 63, 118, 0.2);
+}
+
+:root[data-admin-theme-resolved="admin-atlas"] .admin-toolbar__eyebrow,
+:root[data-admin-theme-resolved="admin-atlas"] .admin-header__eyebrow,
+:root[data-admin-theme-resolved="admin-atlas"] .admin-auth__eyebrow {
+    letter-spacing: 0.18em;
+}

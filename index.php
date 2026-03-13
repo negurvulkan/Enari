@@ -1397,6 +1397,7 @@ $adminDefaults = array(
     'sessionCookie' => 'worldmesh-admin',
     'trustedLocalFallback' => true,
     'historyRoot' => 'cache/admin-history',
+    'theme' => 'admin-atlas',
     'previewTheme' => 'parchment',
     'git' => array(
         'enabled' => false,
@@ -1598,6 +1599,7 @@ $adminWorkspace = new AdminWorkspace(
     $typeTemplateRenderer,
     $typePanelRegistry,
     $moduleRegistry,
+    $templateRenderer,
     new GitWorkspace(
         __DIR__,
         is_array($adminSettings['git'] ?? null) ? $adminSettings['git'] : array(),

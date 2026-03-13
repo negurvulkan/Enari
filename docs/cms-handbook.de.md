@@ -27,7 +27,7 @@ Die wichtigste Regel lautet: nach Aufgabe einsortieren, nicht nach Dateiendung.
 `content/`
 : normale Inhaltsseiten, Bereichs-Uebersichten und lokalisierte Content-Baeume
 
-`cms/pages/`
+`pages/`
 : Standalone-Seiten wie Startseite, Impressum, Datenschutz oder andere explizit konfigurierte Seiten
 
 `config/schema/`
@@ -136,9 +136,9 @@ Wenn beide Seiten denselben Bereich beschreiben, brauchen sie denselben `transla
 
 Das CMS faellt nicht beliebig von einem unbekannten Pfad auf die Standardsprache zurueck. Fallback greift nur dann, wenn die Uebersetzungsgruppe bereits ueber ihren Key bekannt ist, zum Beispiel beim Sprachwechsel oder bei verlinkten Inhalten.
 
-## 5. Standalone-Seiten in `cms/pages/`
+## 5. Standalone-Seiten in `pages/`
 
-Nicht jede Seite gehoert in den normalen Inhaltsbaum. `cms/pages/` ist fuer Seiten gedacht, die explizit ueber die Konfiguration eingebunden werden.
+Nicht jede Seite gehoert in den normalen Inhaltsbaum. `pages/` ist fuer Seiten gedacht, die explizit ueber die Konfiguration eingebunden werden.
 
 Typische Beispiele:
 
@@ -149,7 +149,7 @@ Typische Beispiele:
 
 Wichtig:
 
-- Eine Datei in `cms/pages/` allein macht die Seite noch nicht erreichbar.
+- Eine Datei in `pages/` allein macht die Seite noch nicht erreichbar.
 - Die Seite muss zusaetzlich in der lokalen `site.config.php` eingetragen werden.
 - Slug, Position in Footer oder Sidebar und sprachspezifische Varianten kommen aus der Konfiguration, nicht aus der Ordnerstruktur.
 

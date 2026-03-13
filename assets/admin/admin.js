@@ -96,7 +96,7 @@
     }));
 
     const apiBase = `${bootstrap.adminBaseUrl || "/admin"}/api`;
-    const csrfToken = bootstrap.csrfToken || "";
+    let csrfToken = bootstrap.csrfToken || "";
     const busyLoader = document.querySelector("[data-admin-loader]");
     const busyLoaderLabel = busyLoader ? busyLoader.querySelector("[data-admin-loader-label]") : null;
 
@@ -282,60 +282,108 @@
     document.body.append(referenceDataList);
 
     /**
+     * Determines whether an API payload reports an invalid CSRF token.
+     */
+    const isInvalidCsrfPayload = (payload, status) => status === 400
+        && typeof payload?.message === "string"
+        && payload.message.toLowerCase().includes("csrf");
+
+    /**
+     * Refreshes the admin CSRF token for stale tabs after the session token changed on the server.
+     */
+    const refreshCsrfToken = async () => {
+        const response = await fetch(`${apiBase}/csrf-token`, {
+            method: "GET",
+            headers: { Accept: "application/json" },
+        });
+        const raw = await response.text();
+        if (!response.ok || raw.trim() === "") {
+            return false;
+        }
+
+        let payload;
+        try {
+            payload = JSON.parse(raw);
+        } catch (error) {
+            return false;
+        }
+
+        const nextToken = typeof payload?.csrfToken === "string" ? payload.csrfToken.trim() : "";
+        if (payload?.ok !== true || nextToken === "") {
+            return false;
+        }
+
+        csrfToken = nextToken;
+        return true;
+    };
+
+    /**
      * Processes request.
      */
     const request = async (path, { method = "GET", body = null, isForm = false, loading = "auto", loadingLabel = "" } = {}) => {
         const releaseBusyState = beginBusyState(loadingLabel || "Arbeitsbereich wird geladen...", loading);
-        const options = {
-            method,
-            headers: {},
-        };
-
-        if (method !== "GET") {
-            options.headers["X-CSRF-Token"] = csrfToken;
-        }
-
-        if (body !== null && !isForm) {
-            options.headers["Content-Type"] = "application/json";
-            options.body = JSON.stringify(body);
-        } else if (body !== null) {
-            options.body = body;
-        }
 
         try {
-            const response = await fetch(`${apiBase}/${path}`, options);
-            const raw = await response.text();
-            if (raw.trim() === "") {
-                const error = new Error(response.ok
-                    ? "Leere API-Antwort erhalten."
-                    : `Request failed: ${response.status}`);
-                error.payload = {
-                    ok: false,
-                    details: `Die Admin-API hat fuer ${path} keinen JSON-Body geliefert.`,
+            let retriedAfterCsrfRefresh = false;
+
+            while (true) {
+                const options = {
+                    method,
+                    headers: {},
                 };
-                throw error;
-            }
 
-            let payload;
-            try {
-                payload = JSON.parse(raw);
-            } catch (parseError) {
-                const error = new Error(`Ungueltige API-Antwort (${response.status}).`);
-                error.payload = {
-                    ok: false,
-                    details: raw.slice(0, 500),
-                };
-                error.cause = parseError;
-                throw error;
-            }
+                if (method !== "GET") {
+                    options.headers["X-CSRF-Token"] = csrfToken;
+                }
 
-            if (!response.ok || payload.ok === false) {
-                const error = new Error(payload.message || `Request failed: ${response.status}`);
-                error.payload = payload;
-                throw error;
-            }
+                if (body !== null && !isForm) {
+                    options.headers["Content-Type"] = "application/json";
+                    options.body = JSON.stringify(body);
+                } else if (body !== null) {
+                    options.body = body;
+                }
 
-            return payload;
+                const response = await fetch(`${apiBase}/${path}`, options);
+                const raw = await response.text();
+                if (raw.trim() === "") {
+                    const error = new Error(response.ok
+                        ? "Leere API-Antwort erhalten."
+                        : `Request failed: ${response.status}`);
+                    error.payload = {
+                        ok: false,
+                        details: `Die Admin-API hat fuer ${path} keinen JSON-Body geliefert.`,
+                    };
+                    throw error;
+                }
+
+                let payload;
+                try {
+                    payload = JSON.parse(raw);
+                } catch (parseError) {
+                    const error = new Error(`Ungueltige API-Antwort (${response.status}).`);
+                    error.payload = {
+                        ok: false,
+                        details: raw.slice(0, 500),
+                    };
+                    error.cause = parseError;
+                    throw error;
+                }
+
+                if ((!response.ok || payload.ok === false) && method !== "GET" && !retriedAfterCsrfRefresh && isInvalidCsrfPayload(payload, response.status)) {
+                    retriedAfterCsrfRefresh = true;
+                    if (await refreshCsrfToken()) {
+                        continue;
+                    }
+                }
+
+                if (!response.ok || payload.ok === false) {
+                    const error = new Error(payload.message || `Request failed: ${response.status}`);
+                    error.payload = payload;
+                    throw error;
+                }
+
+                return payload;
+            }
         } finally {
             releaseBusyState();
         }

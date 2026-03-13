@@ -113,7 +113,7 @@ Wichtige Dateien und Ordner:
 * `site.config.sample.php` – Vorlage für neue Instanzen
 * `site.config.php` – lokale Runtime-Konfiguration
 * `content/` – Demo-Content
-* `cms/pages/` – Service- und Systemseiten
+* `pages/` – Service- und Systemseiten
 * `config/schema/` – Typ- und Relationsdefinitionen
 * `themes/` – Themes mit Templates und Assets
 

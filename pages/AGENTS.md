@@ -1,6 +1,6 @@
 # Standalone Pages Guide
 
-This guide applies to standalone pages in `cms/pages/`.
+This guide applies to standalone pages in `pages/`.
 
 ## What belongs here
 

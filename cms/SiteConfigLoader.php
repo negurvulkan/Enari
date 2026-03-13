@@ -88,6 +88,7 @@ final class SiteConfigLoader
         self::validateFilePath($basePath, $config, array('homePage', 'source'), 'homePage.source', $errors);
         self::validateStandalonePages($basePath, (array) ($config['standalonePages'] ?? array()), 'standalonePages', $errors);
         self::validateModules($basePath, (array) ($config['modules'] ?? array()), $errors);
+        self::validateAdminTheme($basePath, (array) ($config['admin'] ?? array()), $errors);
         self::validatePreviewTheme($basePath, (array) ($config['admin'] ?? array()), $errors);
         self::validateI18n($basePath, (array) ($config['i18n'] ?? array()), $errors);
         self::validateAdminGit($basePath, (array) ($config['admin'] ?? array()), $errors);
@@ -225,6 +226,32 @@ final class SiteConfigLoader
                     $errors
                 );
             }
+        }
+    }
+
+    /**
+     * Validates the admin theme.
+     *
+     * @param array<string, mixed> $adminConfig
+     * @param array<int, string> $errors
+     */
+    private static function validateAdminTheme(string $basePath, array $adminConfig, array &$errors): void
+    {
+        $themeKey = trim((string) ($adminConfig['theme'] ?? 'admin-atlas'));
+        if ($themeKey === '') {
+            $errors[] = 'admin.theme darf nicht leer sein.';
+
+            return;
+        }
+
+        $themePath = rtrim(str_replace('\\', '/', $basePath), '/') . '/themes/' . $themeKey;
+        if (!is_dir($themePath)) {
+            $errors[] = 'Admin-Theme fehlt: themes/' . $themeKey;
+            return;
+        }
+
+        if (!is_file($themePath . '/templates/admin-app.tpl') || !is_file($themePath . '/templates/admin-auth.tpl')) {
+            $errors[] = 'Admin-Theme ist unvollstaendig: themes/' . $themeKey . ' (admin-app.tpl/admin-auth.tpl fehlen).';
         }
     }
 

@@ -588,7 +588,16 @@ final class ReleaseSmokeTester
                 continue;
             }
 
-            if (is_dir($themeRoot . '/' . $entry)) {
+            $themePath = $themeRoot . '/' . $entry;
+            if (!is_dir($themePath)) {
+                continue;
+            }
+
+            // Admin-only themes should not participate in frontend smoke tests.
+            $hasPublicLayout = is_file($themePath . '/templates/layout.tpl')
+                || is_file($themePath . '/templates/page.tpl');
+
+            if ($hasPublicLayout) {
                 $themes[] = $entry;
             }
         }

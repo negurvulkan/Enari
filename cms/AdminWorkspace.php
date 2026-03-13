@@ -126,6 +126,13 @@ final class AdminWorkspace
     private $moduleStylesheets;
 
     /**
+     * Stores the Smarty renderer used for themed admin pages.
+     *
+     * @var SmartyRenderer
+     */
+    private $templateRenderer;
+
+    /**
      * Stores documents indexed by path.
      *
      * @var array<string, array<string, mixed>>
@@ -159,6 +166,7 @@ final class AdminWorkspace
         TypeTemplateRenderer $typeTemplateRenderer,
         TypePanelRegistry $typePanelRegistry,
         ModuleRegistry $moduleRegistry,
+        SmartyRenderer $templateRenderer,
         GitWorkspace $gitWorkspace,
         array $mermaidClientConfig,
         array $cytoscapeClientConfig,
@@ -174,6 +182,7 @@ final class AdminWorkspace
         $this->typeTemplateRenderer = $typeTemplateRenderer;
         $this->typePanelRegistry = $typePanelRegistry;
         $this->moduleRegistry = $moduleRegistry;
+        $this->templateRenderer = $templateRenderer;
         $this->gitWorkspace = $gitWorkspace;
         $this->documentCodec = new DocumentCodec();
         $this->contentValidator = new I18nContentValidator($this->basePath, $siteConfig);
@@ -221,9 +230,9 @@ final class AdminWorkspace
     }
 
     /**
-     * Resolves an admin asset URL with a filemtime cache buster.
+     * Resolves an asset URL with a filemtime cache buster.
      */
-    private function versionedAdminAssetUrl(string $relativePath): string
+    private function versionedAssetUrl(string $relativePath): string
     {
         $relativePath = $this->normalizePath($relativePath);
         $url = $this->repository->assetUrl($relativePath);
@@ -237,6 +246,14 @@ final class AdminWorkspace
         $separator = strpos($url, '?') === false ? '?' : '&';
 
         return $url . $separator . 'v=' . rawurlencode($version);
+    }
+
+    /**
+     * Resolves an admin asset URL with a filemtime cache buster.
+     */
+    private function versionedAdminAssetUrl(string $relativePath): string
+    {
+        return $this->versionedAssetUrl($relativePath);
     }
 
     /**
@@ -328,11 +345,15 @@ final class AdminWorkspace
     private function normalizeConfig(array $adminConfig): array
     {
         $title = trim((string) ($adminConfig['title'] ?? 'CMS Workspace'));
-        $versionLabel = trim((string) ($adminConfig['versionLabel'] ?? 'v1.2'));
+        $versionLabel = trim((string) ($adminConfig['versionLabel'] ?? 'v1.3'));
         $username = trim((string) ($adminConfig['username'] ?? 'admin'));
         $password = (string) ($adminConfig['password'] ?? '');
         $passwordHash = trim((string) ($adminConfig['passwordHash'] ?? ''));
         $historyRoot = $this->normalizePath((string) ($adminConfig['historyRoot'] ?? 'cache/admin-history'));
+        $adminTheme = $this->normalizeThemeKey((string) ($adminConfig['theme'] ?? 'admin-atlas'));
+        if ($adminTheme === '') {
+            $adminTheme = 'admin-atlas';
+        }
         $previewTheme = $this->normalizeThemeKey((string) ($adminConfig['previewTheme'] ?? 'parchment'));
         if ($previewTheme === '') {
             $previewTheme = 'parchment';
@@ -341,13 +362,14 @@ final class AdminWorkspace
         return array(
             'enabled' => !array_key_exists('enabled', $adminConfig) || !empty($adminConfig['enabled']),
             'title' => $title !== '' ? $title : 'CMS Workspace',
-            'versionLabel' => $versionLabel !== '' ? $versionLabel : 'v1.2',
+            'versionLabel' => $versionLabel !== '' ? $versionLabel : 'v1.3',
             'username' => $username !== '' ? $username : 'admin',
             'password' => $password,
             'passwordHash' => $passwordHash,
             'historyRoot' => $historyRoot !== '' ? $historyRoot : 'cache/admin-history',
             'sessionCookie' => trim((string) ($adminConfig['sessionCookie'] ?? 'worldmesh-admin')),
             'trustedLocalFallback' => !array_key_exists('trustedLocalFallback', $adminConfig) || !empty($adminConfig['trustedLocalFallback']),
+            'theme' => $adminTheme,
             'previewTheme' => $previewTheme,
         );
     }
@@ -496,6 +518,78 @@ final class AdminWorkspace
     }
 
     /**
+     * Resolves the configured admin theme and falls back to the default theme when templates are missing.
+     */
+    private function resolveAdminThemeKey(): string
+    {
+        $theme = $this->normalizeThemeKey((string) ($this->config['theme'] ?? 'admin-atlas'));
+        if ($theme === '') {
+            $theme = 'admin-atlas';
+        }
+
+        return $this->templateRenderer->templateExists($theme . '/templates/admin-app.tpl')
+            ? $theme
+            : 'admin-atlas';
+    }
+
+    /**
+     * Resolves a themed admin template name.
+     */
+    private function adminTemplateName(string $templateFile): string
+    {
+        $theme = $this->resolveAdminThemeKey();
+        $candidate = $theme . '/templates/' . ltrim($templateFile, '/');
+        if ($this->templateRenderer->templateExists($candidate)) {
+            return $candidate;
+        }
+
+        return 'admin-atlas/templates/' . ltrim($templateFile, '/');
+    }
+
+    /**
+     * Builds stylesheet URLs for the themed admin surface.
+     *
+     * @return string[]
+     */
+    private function buildAdminStylesheetUrls(string $adminTheme, bool $includeEditorVendor = false): array
+    {
+        $stylesheets = array();
+
+        if ($includeEditorVendor) {
+            $stylesheets[] = $this->repository->assetUrl('assets/vendor/toastui-editor/toastui-editor.min.css');
+            $stylesheets[] = $this->repository->assetUrl('assets/vendor/toastui-editor/theme/toastui-editor-dark.min.css');
+        }
+
+        $stylesheets[] = $this->versionedAdminAssetUrl('assets/admin/admin.css');
+
+        foreach (array('theme.css', 'loader.css') as $assetName) {
+            $relativePath = 'themes/' . $adminTheme . '/assets/' . $assetName;
+            if (is_file($this->fullPath($relativePath))) {
+                $stylesheets[] = $this->versionedAssetUrl($relativePath);
+            }
+        }
+
+        return array_values(array_unique($stylesheets));
+    }
+
+    /**
+     * Builds script URLs for the admin workspace.
+     *
+     * @return string[]
+     */
+    private function buildAdminScriptUrls(): array
+    {
+        return array(
+            $this->repository->assetUrl('assets/vendor/mermaid/mermaid.min.js'),
+            $this->repository->assetUrl('assets/vendor/toastui-editor/toastui-editor-all.min.js'),
+            $this->versionedAdminAssetUrl('assets/admin/markdown-adapter.js'),
+            $this->versionedAdminAssetUrl('assets/admin/editor-shell.js'),
+            $this->versionedAdminAssetUrl('assets/admin/workspace-layout.js'),
+            $this->versionedAdminAssetUrl('assets/admin/admin.js'),
+        );
+    }
+
+    /**
      * Renders login page.
      */
     private function renderLoginPage(string $errorMessage = ''): void
@@ -508,16 +602,22 @@ final class AdminWorkspace
         }
 
         $csrfToken = $this->ensureCsrfToken();
-        $title = $this->escapeHtml((string) ($this->config['title'] ?? 'CMS Workspace'));
-        $errorHtml = $errorMessage !== ''
-            ? '<p class="admin-auth__error">' . $this->escapeHtml($errorMessage) . '</p>'
-            : '';
-        $hintHtml = $requiresCredentials
-            ? '<p class="admin-auth__hint">Melde dich mit dem konfigurierten Maintainer-Account an.</p>'
-            : '<p class="admin-auth__hint">Setze <code>CMS_ADMIN_PASSWORD</code> oder <code>CMS_ADMIN_PASSWORD_HASH</code>, um Remote-Logins zu aktivieren. Ohne Passwort ist der Workspace nur ueber vertrauenswuerdige lokale Requests verfuegbar.</p>';
+        $title = (string) ($this->config['title'] ?? 'CMS Workspace');
+        $adminTheme = $this->resolveAdminThemeKey();
 
         header('Content-Type: text/html; charset=utf-8');
         http_response_code($requiresCredentials ? 200 : 503);
+
+        echo $this->templateRenderer->render($this->adminTemplateName('admin-auth.tpl'), array(
+            'title' => $title,
+            'adminTheme' => $adminTheme,
+            'stylesheets' => $this->buildAdminStylesheetUrls($adminTheme),
+            'requiresCredentials' => $requiresCredentials,
+            'errorMessage' => $errorMessage,
+            'loginActionUrl' => $this->adminUrl('login'),
+            'csrfToken' => $csrfToken,
+        ));
+        return;
 
         echo '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">';
         echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
@@ -547,22 +647,36 @@ final class AdminWorkspace
     private function renderAppPage(): void
     {
         $bootstrap = $this->buildBootstrapPayload();
-        $bootstrapJson = json_encode($bootstrap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $title = $this->escapeHtml((string) ($this->config['title'] ?? 'CMS Workspace'));
-        $versionLabel = $this->escapeHtml((string) ($this->config['versionLabel'] ?? 'v1.2'));
+        $bootstrapJson = json_encode($bootstrap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        $title = (string) ($this->config['title'] ?? 'CMS Workspace');
+        $versionLabel = (string) ($this->config['versionLabel'] ?? 'v1.3');
+        $adminTheme = $this->resolveAdminThemeKey();
         $previewTheme = $this->normalizeThemeKey((string) ($this->config['previewTheme'] ?? 'parchment'));
         if ($previewTheme === '') {
             $previewTheme = 'parchment';
         }
-        $logoutForm = '';
-        if ($this->hasConfiguredCredentials()) {
-            $logoutForm = '<form method="post" action="' . $this->escapeAttribute($this->adminUrl('logout')) . '" class="admin-header__logout">'
-                . '<input type="hidden" name="csrf" value="' . $this->escapeAttribute($this->ensureCsrfToken()) . '">'
-                . '<button type="submit" class="admin-button admin-button--ghost">Abmelden</button>'
-                . '</form>';
-        }
 
         header('Content-Type: text/html; charset=utf-8');
+        $adminBrand = trim((string) (($this->siteConfig['site']['brandTitle'] ?? $this->siteConfig['site']['name'] ?? 'WorldMesh')));
+        if ($adminBrand === '') {
+            $adminBrand = 'WorldMesh';
+        }
+
+        echo $this->templateRenderer->render($this->adminTemplateName('admin-app.tpl'), array(
+            'title' => $title,
+            'versionLabel' => $versionLabel,
+            'adminTheme' => $adminTheme,
+            'previewTheme' => $previewTheme,
+            'stylesheets' => $this->buildAdminStylesheetUrls($adminTheme, true),
+            'scripts' => $this->buildAdminScriptUrls(),
+            'bootstrapJson' => $bootstrapJson !== false ? $bootstrapJson : '{}',
+            'adminBrand' => $adminBrand,
+            'hasCredentials' => $this->hasConfiguredCredentials(),
+            'logoutActionUrl' => $this->adminUrl('logout'),
+            'csrfToken' => $this->ensureCsrfToken(),
+        ));
+        return;
+
         echo '<!DOCTYPE html><html lang="de" data-theme-resolved="' . $this->escapeAttribute($previewTheme) . '"><head><meta charset="utf-8">';
         echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
         echo '<title>' . $title . '</title>';
@@ -592,6 +706,22 @@ final class AdminWorkspace
         if ($adminBrand === '') {
             $adminBrand = 'WorldMesh';
         }
+
+        echo $this->templateRenderer->render($this->adminTemplateName('admin-app.tpl'), array(
+            'title' => $title,
+            'versionLabel' => $versionLabel,
+            'adminTheme' => $adminTheme,
+            'previewTheme' => $previewTheme,
+            'stylesheets' => $this->buildAdminStylesheetUrls($adminTheme, true),
+            'scripts' => $this->buildAdminScriptUrls(),
+            'bootstrapJson' => $bootstrapJson !== false ? $bootstrapJson : '{}',
+            'adminBrand' => $adminBrand,
+            'hasCredentials' => $this->hasConfiguredCredentials(),
+            'logoutActionUrl' => $this->adminUrl('logout'),
+            'csrfToken' => $this->ensureCsrfToken(),
+        ));
+        return;
+
         echo '<div class="admin-live-region" data-admin-live role="status" aria-live="polite" aria-atomic="true"></div>';
         echo '<div class="admin-app" data-admin-app="true">';
         echo '<header class="admin-header">';
@@ -757,6 +887,11 @@ final class AdminWorkspace
             return;
         }
 
+        if ($apiPath === 'csrf-token') {
+            $this->handleCsrfTokenApi();
+            return;
+        }
+
         if ($apiPath === 'document') {
             $this->handleDocumentApi();
             return;
@@ -906,6 +1041,17 @@ final class AdminWorkspace
             'ok' => false,
             'message' => 'Unbekannter Admin-API-Endpunkt.',
         ), 404);
+    }
+
+    /**
+     * Returns the current CSRF token for stale admin tabs that need to recover after session drift.
+     */
+    private function handleCsrfTokenApi(): void
+    {
+        $this->jsonResponse(array(
+            'ok' => true,
+            'csrfToken' => $this->ensureCsrfToken(),
+        ));
     }
 
     /**
@@ -2222,7 +2368,7 @@ final class AdminWorkspace
             return ltrim(substr($relativePath, strlen($sourceRoot)), '/');
         }
 
-        if (strpos($relativePath, 'cms/pages/') === 0) {
+        if (strpos($relativePath, 'pages/') === 0) {
             $fileName = basename($relativePath);
             return preg_replace('/(?:\.[a-z]{2})?\.md$/i', '.' . $targetLocale . '.md', $fileName) ?? $fileName;
         }
@@ -3042,7 +3188,7 @@ final class AdminWorkspace
         $body = (string) ($normalized['body'] ?? '');
         $typeEntry = $this->schemaRegistry->resolveEntryType($frontmatter);
         $locale = $sourceDocument !== null ? (string) ($sourceDocument['locale'] ?? '') : $this->detectLocaleFromPath($path);
-        $isStandalone = $sourceDocument !== null ? !empty($sourceDocument['isStandalone']) : strpos($path, 'cms/pages/') === 0;
+        $isStandalone = $sourceDocument !== null ? !empty($sourceDocument['isStandalone']) : strpos($path, 'pages/') === 0;
         $isOverview = preg_match('/(?:^|\/)(00_uebersicht|00_overview)\.md$/i', $path) === 1;
         $contentPath = $this->deriveContentPath($path, $locale, $isStandalone);
         $slug = trim((string) ($frontmatter['slug'] ?? ''));
@@ -3547,7 +3693,7 @@ final class AdminWorkspace
             return false;
         }
 
-        if (strpos($relativePath, 'cms/pages/') === 0) {
+        if (strpos($relativePath, 'pages/') === 0) {
             return true;
         }
 

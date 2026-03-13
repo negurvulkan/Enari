@@ -55,17 +55,17 @@ return array(
                     'footerNavAriaLabel' => 'Service',
                 ),
                 'homePage' => array(
-                    'source' => 'cms/pages/startseite.en.md',
+                    'source' => 'pages/startseite.en.md',
                     'translationKey' => 'site.home',
                 ),
                 'standalonePages' => array(
                     array(
-                        'source' => 'cms/pages/impressum.en.md',
+                        'source' => 'pages/impressum.en.md',
                         'slug' => 'service/impressum',
                         'translationKey' => 'service.impressum',
                     ),
                     array(
-                        'source' => 'cms/pages/datenschutz.en.md',
+                        'source' => 'pages/datenschutz.en.md',
                         'slug' => 'service/datenschutz',
                         'translationKey' => 'service.datenschutz',
                     ),
@@ -98,13 +98,14 @@ return array(
     'admin' => array(
         'enabled' => true,
         'title' => 'WorldMesh Admin Workspace',
-        'versionLabel' => 'v1.2',
+        'versionLabel' => 'v1.3',
         'username' => getenv('CMS_ADMIN_USERNAME') !== false ? (string) getenv('CMS_ADMIN_USERNAME') : 'admin',
         'password' => getenv('CMS_ADMIN_PASSWORD') !== false ? (string) getenv('CMS_ADMIN_PASSWORD') : '',
         'passwordHash' => getenv('CMS_ADMIN_PASSWORD_HASH') !== false ? (string) getenv('CMS_ADMIN_PASSWORD_HASH') : '',
         'sessionCookie' => 'worldmesh-admin',
         'trustedLocalFallback' => true,
         'historyRoot' => 'cache/admin-history',
+        'theme' => 'admin-atlas',
         'previewTheme' => 'parchment',
         'git' => array(
             'enabled' => false,
@@ -130,7 +131,7 @@ return array(
         'defaultLead' => 'Kleines oeffentliches Demo-Archiv fuer das dateibasierte WorldMesh Worldbuilder CMS.',
     ),
     'homePage' => array(
-        'source' => 'cms/pages/startseite.md',
+        'source' => 'pages/startseite.md',
         'translationKey' => 'site.home',
     ),
     'ui' => array(
@@ -170,12 +171,12 @@ return array(
     ),
     'standalonePages' => array(
         array(
-            'source' => 'cms/pages/impressum.md',
+            'source' => 'pages/impressum.md',
             'slug' => 'service/impressum',
             'translationKey' => 'service.impressum',
         ),
         array(
-            'source' => 'cms/pages/datenschutz.md',
+            'source' => 'pages/datenschutz.md',
             'slug' => 'service/datenschutz',
             'translationKey' => 'service.datenschutz',
         ),

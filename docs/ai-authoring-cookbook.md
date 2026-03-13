@@ -134,7 +134,7 @@ Config registration pattern in `site.config.php`:
 
 ```php
 array(
-    'source' => 'cms/pages/accessibility.md',
+    'source' => 'pages/accessibility.md',
     'slug' => 'service/accessibility',
     'translationKey' => 'service.accessibility',
 ),
@@ -142,7 +142,7 @@ array(
 
 Checklist:
 
-- put the file in `cms/pages/`
+- put the file in `pages/`
 - wire it through `standalonePages` or locale-specific overrides
 - use `translationKey` in config and `translation_key` in Markdown when needed
 - run `php scripts/release-check.php --strict`
