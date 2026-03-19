@@ -43,7 +43,7 @@ Der enthaltene Demo-Datensatz dient ausschließlich als Beispiel für Struktur, 
 
 ---
 
-# Schnellstart
+# Lokaler Schnellstart
 
 ### 1. Runtime-Konfiguration anlegen
 
@@ -73,6 +73,39 @@ erreichbar.
 
 ---
 
+# Setup fuer eigenen Webspace
+
+Fuer Apache-basierten Shared Hosting Webspace ist der Standard-Flow jetzt browserbasiert:
+
+1. Lade das Paket mit `.htaccess`, `index.php`, `assets/`, `cms/`, `config/`, `content/`, `pages/` und `themes/` auf deinen Webspace hoch.
+2. Rufe die Ziel-URL im Browser auf.
+3. Der Setup-Assistent startet automatisch, solange noch keine `site.config.php` existiert.
+4. Vergib Seitentitel, Standardsprache und Admin-Zugang.
+5. Der Assistent erzeugt `site.config.php`, speichert nur den `passwordHash`, deaktiviert `trustedLocalFallback`, legt die Runtime-Verzeichnisse an und leitet anschliessend nach `/admin` weiter.
+
+Optionaler CLI-Fallback fuer Hosts ohne Schreibrechte im Projektordner:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup-webspace.ps1
+```
+
+Oder manuell:
+
+```powershell
+Copy-Item site.config.sample.php site.config.php
+php scripts/validate-config.php
+php scripts/release-check.php --strict
+```
+
+Wichtige Hinweise:
+
+* `site.config.php` ist instanzbezogen, wird vom Browser-Assistenten erzeugt und gehoert nicht ins Git-Tracking
+* fuer Apache-Webspace ist die versionierte `.htaccess` gedacht
+* `router.php` wird nur fuer den lokalen PHP-Entwicklungsserver benoetigt
+* wenn dein Webspace PHP keine Schreibrechte im CMS-Hauptverzeichnis gibt, zeigt der Assistent die generierte Konfiguration an und du kannst auf den CLI-Fallback wechseln
+
+---
+
 # Demo-Datensatz
 
 Das Repository enthält einen kleinen Demo-Bestand, der zeigt:
@@ -97,6 +130,7 @@ Der Datensatz ist bewusst klein gehalten und dient nur als Beispiel für das CMS
 # Projektstruktur
 
 ```text
+.htaccess
 index.php
 router.php
 assets/
@@ -110,6 +144,8 @@ themes/
 
 Wichtige Dateien und Ordner:
 
+* `.htaccess` - Apache-Rewrite-Regeln fuer Shared Hosting
+* `site.config.php` bleibt lokal und unversioniert
 * `site.config.sample.php` – Vorlage für neue Instanzen
 * `site.config.php` – lokale Runtime-Konfiguration
 * `content/` – Demo-Content

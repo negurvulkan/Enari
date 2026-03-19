@@ -126,7 +126,38 @@ timeline
 
 Use Mermaid when the diagram is authored directly and does not need CMS graph semantics.
 
-## 5. Cytoscape `::graph` Blocks
+## 5. WorldOrbit Blocks
+
+Use `worldorbit` fenced blocks for interactive atlas views such as star systems, orbital layouts, and spatial worldbuilding scenes.
+
+Example with explicit CMS bindings:
+
+````md
+```worldorbit
+schema 2.5
+
+#cms-bind object=naar page=./01_Planet_Naar.md
+#cms-bind object=relay-station page=demo.archive.relay-station
+
+system enari
+    title "Enari System"
+
+star enari-prime
+planet naar orbit enari-prime distance 1 au
+station relay-station at naar label "Relay"
+```
+````
+
+Binding rules:
+
+- use `#cms-bind object=<worldorbit-id> page=<cms-target>` inside the fenced block
+- `page=` uses the CMS link resolver, so relative paths, slugs, content references, and `translation_key` targets are allowed
+- bindings are always explicit; the CMS does not guess links from object names
+- keep the comment lines in the block, because WorldOrbit ignores them and the CMS reads them as metadata
+
+Use WorldOrbit when the content should stay atlas-like and spatial, not when a normal flowchart or relation graph is enough.
+
+## 6. Cytoscape `::graph` Blocks
 
 Use `::graph` blocks for CMS-native graph rendering.
 
@@ -188,10 +219,12 @@ Common top-level keys used by the renderer:
 
 Use Cytoscape when the graph should reflect CMS relations, navigation context, or mixed manual/CMS graph data.
 
-## 6. Common Mistakes
+## 7. Common Mistakes
 
 - Do not hardcode `/<locale>/?page=...` inside content when a relative link works.
 - Do not use raw HTML for images or icons when normal Markdown or wiki-style embeds already support the case.
 - Do not use Cytoscape `::graph` blocks for simple explanatory flowcharts that Mermaid handles better.
+- Do not use WorldOrbit bindings without `object=` and `page=`; incomplete `#cms-bind` comments are treated as warnings.
+- Do not rely on object-name guessing for CMS links inside WorldOrbit blocks.
 - Do not omit the closing `::` in a graph block.
 - Do not invent unsupported option names or undocumented graph block syntax.

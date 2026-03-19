@@ -129,6 +129,7 @@
                                             <button type="button" class="admin-button admin-button--ghost admin-button--small" data-admin-insert-media>Medium</button>
                                             <button type="button" class="admin-button admin-button--ghost admin-button--small" data-admin-insert-icon>Icon</button>
                                             <button type="button" class="admin-button admin-button--ghost admin-button--small" data-admin-insert-mermaid>Mermaid</button>
+                                            <button type="button" class="admin-button admin-button--ghost admin-button--small" data-admin-insert-worldorbit>WorldOrbit</button>
                                             <button type="button" class="admin-button admin-button--ghost admin-button--small" data-admin-insert-graph>Graph</button>
                                         </div>
                                     </div>

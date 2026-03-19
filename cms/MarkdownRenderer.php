@@ -1,12 +1,13 @@
 <?php
 
 /**
- * Markdown renderer for the CMS dialect, including embeds, Mermaid blocks, and relation graphs.
+ * Markdown renderer for the CMS dialect, including embeds, Mermaid blocks, WorldOrbit blocks, and relation graphs.
  */
 
 declare(strict_types=1);
 
 require_once __DIR__ . '/CytoscapeGraphRenderer.php';
+require_once __DIR__ . '/WorldOrbitBlockRenderer.php';
 
 /**
  * Transforms CMS Markdown into HTML while tracking headings and structured embeds.
@@ -26,6 +27,13 @@ final class MarkdownRenderer
      * @var CytoscapeGraphRenderer
      */
     private $graphRenderer;
+
+    /**
+     * Stores WorldOrbit renderer.
+     *
+     * @var WorldOrbitBlockRenderer
+     */
+    private $worldOrbitBlockRenderer;
 
     /**
      * Stores heading IDs.
@@ -48,6 +56,7 @@ final class MarkdownRenderer
     {
         $this->repository = $repository;
         $this->graphRenderer = new CytoscapeGraphRenderer();
+        $this->worldOrbitBlockRenderer = new WorldOrbitBlockRenderer($repository);
     }
 
     /**
@@ -108,6 +117,11 @@ final class MarkdownRenderer
 
                 if ($this->isMermaidLanguage($language)) {
                     $html[] = $this->renderMermaidBlock(implode("\n", $buffer));
+                    continue;
+                }
+
+                if ($this->isWorldOrbitLanguage($language)) {
+                    $html[] = $this->renderWorldOrbitBlock(implode("\n", $buffer), $currentDocumentRelativePath);
                     continue;
                 }
 
@@ -244,6 +258,14 @@ final class MarkdownRenderer
     }
 
     /**
+     * Determines whether WorldOrbit language.
+     */
+    private function isWorldOrbitLanguage(string $language): bool
+    {
+        return strtolower(trim($language)) === 'worldorbit';
+    }
+
+    /**
      * Renders mermaid block.
      */
     private function renderMermaidBlock(string $definition): string
@@ -259,6 +281,14 @@ final class MarkdownRenderer
             . '</pre>'
             . '<p class="mermaid-block__feedback" data-mermaid-feedback hidden></p>'
             . '</div>';
+    }
+
+    /**
+     * Renders WorldOrbit block.
+     */
+    private function renderWorldOrbitBlock(string $definition, string $currentDocumentRelativePath): string
+    {
+        return $this->worldOrbitBlockRenderer->render($definition, $currentDocumentRelativePath);
     }
 
     /**

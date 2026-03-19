@@ -92,11 +92,13 @@ Use supported embeds rather than ad-hoc HTML:
 - wiki-style embeds such as `![[../99_Medien/datei.png|Caption]]`
 - icon embeds using `icon:` targets
 - Mermaid fenced blocks using ` ```mermaid ` or ` ```mmd `
+- WorldOrbit fenced blocks using ` ```worldorbit `
 - `::graph` blocks for inline Cytoscape graph content
 
 Choose the format by intent:
 
 - Use Mermaid for authored, static explanatory diagrams such as flows, timelines, or conceptual maps.
+- Use WorldOrbit fenced blocks for interactive atlas content with explicit object-to-page bindings such as systems, orbital maps, or spatial worldbuilding views.
 - Use Cytoscape `::graph` blocks for relationship exploration, CMS relation views, or mixed CMS/manual graph data.
 - Use icon embeds for inline or block iconography, not as a generic image replacement.
 - Avoid raw HTML unless no supported Markdown form exists.
@@ -114,6 +116,7 @@ Supported core forms:
 - Wiki-style media embeds: `![[../99_Medien/map.png|Regional map]]`
 - Icon embeds with `icon:` targets
 - Mermaid code fences with `mermaid` or `mmd`
+- WorldOrbit code fences with `worldorbit`
 - Cytoscape graph blocks using `::graph` ... `::`
 
 Use Cytoscape blocks in this structure:
@@ -128,6 +131,25 @@ layout: cose
 ```
 
 Manual `nodes:` and `edges:` sections are allowed inside the graph block when needed.
+
+Use WorldOrbit blocks in this structure:
+
+````md
+```worldorbit
+schema 2.5
+#cms-bind object=example-planet page=./01_Planet.md
+system example-system
+    title "Example System"
+star example-star
+planet example-planet orbit example-star distance 1 au
+```
+````
+
+WorldOrbit binding rules:
+
+- use `#cms-bind object=<worldorbit-id> page=<cms-target>` inside the block
+- keep bindings explicit; there is no automatic name-based CMS matching
+- `page=` may use relative paths, slugs, content references, or `translation_key` targets
 
 ## Supported Syntax and Options
 

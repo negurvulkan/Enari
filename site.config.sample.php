@@ -160,6 +160,18 @@ return array(
                 ),
             ),
         ),
+        'worldorbit' => array(
+            'enabled' => true,
+            'scriptPath' => 'assets/vendor/worldorbit/worldorbit.min.js',
+            'viewer' => array(
+                'theme' => 'atlas',
+                'projection' => 'document',
+                'selection' => true,
+                'tooltipMode' => 'hover',
+                'minimap' => false,
+                'fitPadding' => 36,
+            ),
+        ),
         'cytoscape' => array(
             'enabled' => true,
             'scriptPath' => 'assets/vendor/cytoscape/cytoscape.min.js',

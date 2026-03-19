@@ -33,14 +33,28 @@ Das Repo liefert nur die versionierte Vorlage:
 site.config.sample.php
 ```
 
-Neue Instanzen starten so:
+Neue Instanzen fuer Apache-basierten Shared Hosting Webspace starten bevorzugt so:
+
+1. Paket hochladen: `.htaccess`, `index.php`, `assets/`, `cms/`, `config/`, `content/`, `pages/` und `themes/`
+2. Ziel-URL im Browser aufrufen
+3. Den Setup-Assistenten ausfuellen, solange noch keine `site.config.php` existiert
+
+Der Assistent arbeitet direkt auf dem Webspace, erzeugt die gitignorierte `site.config.php`, haertet den Admin-Zugang ueber `passwordHash`, deaktiviert `trustedLocalFallback`, legt die benoetigten Runtime-Verzeichnisse an und leitet danach nach `/admin` weiter.
+
+Optionaler lokaler Fallback fuer Hosts ohne Schreibrechte im Projektordner:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup-webspace.ps1
+```
+
+Manueller Fallback:
 
 ```powershell
 Copy-Item site.config.sample.php site.config.php
 php scripts/validate-config.php
 ```
 
-Die lokale `site.config.php` kann danach auf jeden beliebigen lokalen Content-Pfad zeigen. Entscheidend ist nur, dass die referenzierten Content-Roots, Homepages und Zusatzseiten dort tatsaechlich existieren.
+Die generierte `site.config.php` bleibt absichtlich instanzbezogen und unversioniert. Beim Browser-Setup liegt sie direkt auf der Zielinstanz; beim CLI- oder manuellen Fallback muss sie mit zur Zielinstanz genommen werden. Entscheidend ist, dass die referenzierten Content-Roots, Homepages und Zusatzseiten dort tatsaechlich existieren.
 
 Wenn die Admin-Git-Integration aktiv ist, muss `admin.git.repositoryRoot` auf ein separates lokales Content-Repository zeigen. Das CMS-Hauptrepo selbst ist bewusst kein Ziel fuer Pull oder Push aus dem Admin.
 
@@ -77,9 +91,12 @@ php scripts/validate-config.php
 php scripts/release-check.php --strict
 ```
 
-Fuer einen Public-Sanity-Check empfiehlt es sich, die Sample-Config kurz als lokale Runtime-Config zu kopieren und denselben Release-Check gegen den reinen Demo-Stand laufen zu lassen.
+Fuer einen Public-Sanity-Check empfiehlt es sich, `scripts/setup-webspace.ps1` in einer frischen Clone-Umgebung auszufuehren oder die Sample-Config manuell zu kopieren und denselben Release-Check gegen den reinen Demo-Stand laufen zu lassen.
+Fuer einen Public-Sanity-Check empfiehlt es sich, entweder den Browser-Assistenten auf einer frischen Testinstanz einmal komplett durchzuspielen oder alternativ `scripts/setup-webspace.ps1` in einer frischen Clone-Umgebung auszufuehren und denselben Release-Check gegen den reinen Demo-Stand laufen zu lassen.
 
 ## Vorbereiteter History-Cleanup
+
+Wichtig: Das Webspace-Bootstrap und der Public-History-Cleanup sind zwei getrennte Aufgaben. Weder der Browser-Assistent noch `scripts/setup-webspace.ps1` veraendern Git-Historie. Der folgende Abschnitt bleibt nur fuer den spaeteren oeffentlichen Rewrite relevant.
 
 Wenn privater Content bereits in frueheren Commits oder Tags liegt, sollte vor dem naechsten oeffentlichen Push eine neue saubere Public-Historie gebaut werden.
 

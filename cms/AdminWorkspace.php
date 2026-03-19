@@ -112,6 +112,13 @@ final class AdminWorkspace
     private $mermaidClientConfig;
 
     /**
+     * Stores WorldOrbit client config.
+     *
+     * @var array<string, mixed>
+     */
+    private $worldorbitClientConfig;
+
+    /**
      * Stores cytoscape client config.
      *
      * @var array<string, mixed>
@@ -152,6 +159,7 @@ final class AdminWorkspace
      * @param array<string, mixed> $siteConfig
      * @param array<string, mixed> $adminConfig
      * @param array<string, mixed> $mermaidClientConfig
+     * @param array<string, mixed> $worldorbitClientConfig
      * @param array<string, mixed> $cytoscapeClientConfig
      * @param array<int, string|array<string, mixed>> $moduleStylesheets
      */
@@ -169,6 +177,7 @@ final class AdminWorkspace
         SmartyRenderer $templateRenderer,
         GitWorkspace $gitWorkspace,
         array $mermaidClientConfig,
+        array $worldorbitClientConfig,
         array $cytoscapeClientConfig,
         array $moduleStylesheets = array()
     ) {
@@ -187,6 +196,7 @@ final class AdminWorkspace
         $this->documentCodec = new DocumentCodec();
         $this->contentValidator = new I18nContentValidator($this->basePath, $siteConfig);
         $this->mermaidClientConfig = $mermaidClientConfig;
+        $this->worldorbitClientConfig = $worldorbitClientConfig;
         $this->cytoscapeClientConfig = $cytoscapeClientConfig;
         $this->moduleStylesheets = $this->normalizeAssetUrls($moduleStylesheets);
 
@@ -3325,8 +3335,10 @@ final class AdminWorkspace
         }
 
         $mermaidConfigJson = json_encode($this->mermaidClientConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $worldorbitConfigJson = json_encode($this->worldorbitClientConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $cytoscapeConfigJson = json_encode($this->cytoscapeClientConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $mermaidLoaderUrl = $this->repository->assetUrl('assets/mermaid.js');
+        $worldorbitLoaderUrl = $this->repository->assetUrl('assets/worldorbit.js');
         $cytoscapeLoaderUrl = $this->repository->assetUrl('assets/cytoscape.js');
         $pageTitle = $this->escapeHtml((string) ($previewDocument['title'] ?? 'Preview'));
 
@@ -3337,8 +3349,9 @@ final class AdminWorkspace
             . '<style>:root{color-scheme:light;}body{margin:0;padding:1.5rem;background:var(--bg,#f4f1ea);color:var(--text,#1e1b16);}main{max-width:72rem;margin:0 auto;}article{padding:1.5rem;border-radius:1.25rem;background:var(--panel,#fff);box-shadow:0 1rem 3rem rgba(0,0,0,.08);}</style>'
             . '</head><body>'
             . '<main><article class="prose">' . $articleHtml . '</article></main>'
-            . '<script>window.__CMS_MERMAID=' . ($mermaidConfigJson !== false ? $mermaidConfigJson : '{}') . ';window.__CMS_CYTOSCAPE=' . ($cytoscapeConfigJson !== false ? $cytoscapeConfigJson : '{}') . ';</script>'
+            . '<script>window.__CMS_MERMAID=' . ($mermaidConfigJson !== false ? $mermaidConfigJson : '{}') . ';window.__CMS_WORLDORBIT=' . ($worldorbitConfigJson !== false ? $worldorbitConfigJson : '{}') . ';window.__CMS_CYTOSCAPE=' . ($cytoscapeConfigJson !== false ? $cytoscapeConfigJson : '{}') . ';</script>'
             . '<script src="' . $this->escapeAttribute($mermaidLoaderUrl) . '"></script>'
+            . '<script src="' . $this->escapeAttribute($worldorbitLoaderUrl) . '"></script>'
             . '<script src="' . $this->escapeAttribute($cytoscapeLoaderUrl) . '"></script>'
             . '</body></html>';
     }

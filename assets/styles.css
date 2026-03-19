@@ -1306,6 +1306,39 @@ pre {
     text-decoration: underline;
 }
 
+.graph-block--worldorbit .graph-block__canvas {
+    --graph-height: min(68vh, 44rem);
+}
+
+.graph-block--worldorbit .graph-block__body {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.worldorbit-block__canvas {
+    position: relative;
+}
+
+.worldorbit-block__canvas > * {
+    width: 100%;
+    height: 100%;
+}
+
+.worldorbit-detail__bindings {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.worldorbit-detail__note,
+.worldorbit-detail__warning {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.55;
+}
+
+.worldorbit-detail__warning {
+    color: color-mix(in srgb, var(--accent) 72%, var(--text));
+}
+
 .graph-block.is-loading {
     opacity: 0.94;
 }

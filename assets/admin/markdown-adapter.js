@@ -5,7 +5,7 @@
 /**
  * @typedef {Object} MarkdownExtensionItem
  * @property {string} id Stable placeholder identifier used inside the editor.
- * @property {string} type Extension kind such as embed, mermaid, graph, or raw-block.
+ * @property {string} type Extension kind such as embed, mermaid, worldorbit, graph, or raw-block.
  * @property {string} raw Raw Markdown snippet for the extension.
  * @property {object} parsed Parsed extension payload used by builder UIs.
  * @property {string} summary Human-readable summary for editor widgets.
@@ -99,6 +99,20 @@
             return "Graph block";
         }
 
+        if (item.type === "worldorbit") {
+            const parsed = item.parsed || {};
+            if (parsed.title) {
+                return `WorldOrbit · ${parsed.title}`;
+            }
+            if (parsed.systemId) {
+                return `WorldOrbit · ${parsed.systemId}`;
+            }
+            if (parsed.schemaVersion) {
+                return `WorldOrbit · Schema ${parsed.schemaVersion}`;
+            }
+            return "WorldOrbit atlas";
+        }
+
         if (item.type === "raw-block") {
             const lines = String(item.raw || "").split("\n").map((line) => line.trim()).filter(Boolean);
             return lines[0] || "Raw block";
@@ -151,6 +165,21 @@
             }
             if (Array.isArray(parsed.edges) && parsed.edges.length) {
                 meta.push(`${parsed.edges.length} edges`);
+            }
+            return meta.join(" · ");
+        }
+
+        if (item.type === "worldorbit") {
+            const parsed = item.parsed || {};
+            const meta = [];
+            if (parsed.schemaVersion) {
+                meta.push(`schema=${parsed.schemaVersion}`);
+            }
+            if (parsed.systemId) {
+                meta.push(`system=${parsed.systemId}`);
+            }
+            if (parsed.bindingCount != null) {
+                meta.push(`${parsed.bindingCount} Bindung${Number(parsed.bindingCount) === 1 ? "" : "en"}`);
             }
             return meta.join(" · ");
         }
@@ -222,9 +251,10 @@
                 }
 
                 const raw = blockLines.join("\n");
-                if (language === "mermaid" || language === "mmd") {
+                if (language === "mermaid" || language === "mmd" || language === "worldorbit") {
                     counter += 1;
-                    const item = parseExtensionSnippet(raw, `mermaid-${counter}`);
+                    const prefix = language === "worldorbit" ? "worldorbit" : "mermaid";
+                    const item = parseExtensionSnippet(raw, `${prefix}-${counter}`);
                     extensions.push(item);
                     output.push(makeBlockPlaceholder(item.id));
                 } else {
@@ -999,6 +1029,121 @@
     }
 
     /**
+     * Unescapes quoted WorldOrbit attribute values.
+     */
+    function unescapeWorldOrbitAttribute(value) {
+        return String(value || "").replace(/\\(["'\\])/g, "$1");
+    }
+
+    /**
+     * Parses WorldOrbit binding attributes.
+     */
+    function parseWorldOrbitBindingAttributes(input) {
+        const attributes = {};
+        const source = String(input || "");
+        const regex = /([A-Za-z][\w-]*)\s*=\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|([^\s]+))/g;
+        let match = regex.exec(source);
+
+        while (match) {
+            const key = String(match[1] || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+            const value = match[2] !== undefined && match[2] !== ""
+                ? unescapeWorldOrbitAttribute(match[2])
+                : (match[3] !== undefined && match[3] !== ""
+                    ? unescapeWorldOrbitAttribute(match[3])
+                    : String(match[4] || "").trim());
+
+            if (["object", "objectid", "id"].includes(key)) {
+                attributes.objectId = value;
+            } else if (["page", "target", "path"].includes(key)) {
+                attributes.pageTarget = value;
+            }
+
+            match = regex.exec(source);
+        }
+
+        return attributes;
+    }
+
+    /**
+     * Parses WorldOrbit block metadata and explicit bindings.
+     */
+    function parseWorldOrbitBlock(raw) {
+        const text = normalizeLineEndings(raw);
+        const lines = text.split("\n");
+        const opening = String(lines.shift() || "").trim();
+        const language = opening.replace(/^```/, "").trim() || "worldorbit";
+
+        if (lines.length && /^```/.test(String(lines[lines.length - 1]).trim())) {
+            lines.pop();
+        }
+
+        const definition = lines.join("\n").trim();
+        const parsed = {
+            language: language.toLowerCase(),
+            definition,
+            schemaVersion: "",
+            systemId: "",
+            title: "",
+            bindingCount: 0,
+            bindings: [],
+        };
+
+        let insideSystemBlock = false;
+        String(definition || "").split("\n").forEach(function (line, index) {
+            const trimmed = String(line || "").trim();
+
+            if (/^\s*#\s*cms-bind\b/i.test(line)) {
+                const match = line.match(/^\s*#\s*cms-bind\b(.*)$/i);
+                const attributes = parseWorldOrbitBindingAttributes(match ? match[1] : "");
+                parsed.bindings.push({
+                    line: index + 1,
+                    objectId: attributes.objectId || "",
+                    pageTarget: attributes.pageTarget || "",
+                });
+            }
+
+            if (!trimmed || /^\s*#/.test(trimmed)) {
+                return;
+            }
+
+            if (!parsed.schemaVersion) {
+                const schemaMatch = line.match(/^\s*schema\s+([^\s#]+)/i);
+                if (schemaMatch) {
+                    parsed.schemaVersion = String(schemaMatch[1] || "").trim();
+                }
+            }
+
+            if (!parsed.systemId) {
+                const systemMatch = line.match(/^\s*system\s+([^\s#]+)(.*)$/i);
+                if (systemMatch) {
+                    parsed.systemId = String(systemMatch[1] || "").trim();
+                    insideSystemBlock = true;
+
+                    const inlineTitleMatch = String(systemMatch[2] || "").match(/\btitle\s+"([^"]+)"/i);
+                    if (inlineTitleMatch) {
+                        parsed.title = String(inlineTitleMatch[1] || "").trim();
+                    }
+                    return;
+                }
+            }
+
+            if (insideSystemBlock && /^\S/.test(line)) {
+                insideSystemBlock = false;
+            }
+
+            if (insideSystemBlock && !parsed.title) {
+                const titleMatch = line.match(/^\s+title\s+"([^"]+)"/i);
+                if (titleMatch) {
+                    parsed.title = String(titleMatch[1] || "").trim();
+                }
+            }
+        });
+
+        parsed.bindingCount = parsed.bindings.length;
+        return parsed;
+    }
+
+    /**
      * Normalizes graph config key.
      */
     function normalizeGraphConfigKey(key) {
@@ -1288,6 +1433,9 @@
         if (/^```(?:mermaid|mmd)\b/i.test(normalizedRaw.trim())) {
             return createExtensionItem(id, "mermaid", normalizedRaw, parseMermaidBlock(normalizedRaw));
         }
+        if (/^```worldorbit\b/i.test(normalizedRaw.trim())) {
+            return createExtensionItem(id, "worldorbit", normalizedRaw, parseWorldOrbitBlock(normalizedRaw));
+        }
         if (/^::graph\b/i.test(normalizedRaw.trim())) {
             return createExtensionItem(id, "graph", normalizedRaw, parseGraphBlock(normalizedRaw));
         }
@@ -1306,6 +1454,7 @@
         buildEmbedToken,
         parseMermaidBlock,
         buildMermaidBlock,
+        parseWorldOrbitBlock,
         parseGraphBlock,
         buildGraphBlock,
         buildExtensionSummary,

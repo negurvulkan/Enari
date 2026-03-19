@@ -292,7 +292,34 @@ Checklist:
 - use Cytoscape when the graph is about relationships, not just explanatory flow
 - keep the closing `::`
 
-## 13. Add a Manual or Mixed Cytoscape Graph
+## 13. Add a WorldOrbit Atlas with CMS Bindings
+
+````md
+```worldorbit
+schema 2.5
+
+#cms-bind object=naar page=./01_Planet_Naar.md
+#cms-bind object=relay-station page=demo.archive.relay-station
+
+system enari
+    title "Enari System"
+
+star enari-prime
+planet naar orbit enari-prime distance 1 au
+station relay-station at naar label "Relay"
+```
+````
+
+Checklist:
+
+- use a `worldorbit` fenced block, not raw HTML or a custom shortcode
+- keep CMS bindings explicit with `#cms-bind object=... page=...`
+- prefer relative `page=` targets when the linked page is nearby in the same locale tree
+- use slugs or `translation_key` targets only when they are the clearer stable reference
+- choose WorldOrbit for spatial atlas content, not for simple explanatory diagrams
+- run `php scripts/release-check.php --strict`
+
+## 14. Add a Manual or Mixed Cytoscape Graph
 
 ```md
 ::graph

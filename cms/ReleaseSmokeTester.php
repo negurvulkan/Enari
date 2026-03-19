@@ -273,19 +273,25 @@ final class ReleaseSmokeTester
                 'data-admin-app=',
                 'data-admin-editor-host',
                 'data-admin-extension-list',
+                'class="admin-auth__form"',
+                'name="username"',
+                'name="password"',
             ),
             true
         );
 
+        $expectsLogin = $this->hasConfiguredAdminCredentials();
         $hasEditorHost = !empty($response['contains']['data-admin-editor-host']);
         $hasExtensionList = !empty($response['contains']['data-admin-extension-list']);
+        $hasAppShell = !empty($response['contains']['data-admin-app=']) && $hasEditorHost && $hasExtensionList;
+        $hasLoginForm = !empty($response['contains']['class="admin-auth__form"'])
+            && !empty($response['contains']['name="username"'])
+            && !empty($response['contains']['name="password"']);
 
         return $this->buildCheck(
             'admin-workspace',
             $response['status'] === 200
-                && !empty($response['contains']['data-admin-app='])
-                && $hasEditorHost
-                && $hasExtensionList
+                && ($expectsLogin ? $hasLoginForm : $hasAppShell)
                 && empty($response['fatal']),
             $this->responseDetails($response)
         );
@@ -352,6 +358,16 @@ final class ReleaseSmokeTester
     {
         $adminConfig = is_array($this->siteConfig['admin'] ?? null) ? $this->siteConfig['admin'] : array();
         return !array_key_exists('enabled', $adminConfig) || !empty($adminConfig['enabled']);
+    }
+
+    /**
+     * Determines whether the admin smoke test should expect a login page.
+     */
+    private function hasConfiguredAdminCredentials(): bool
+    {
+        $adminConfig = is_array($this->siteConfig['admin'] ?? null) ? $this->siteConfig['admin'] : array();
+        return trim((string) ($adminConfig['passwordHash'] ?? '')) !== ''
+            || trim((string) ($adminConfig['password'] ?? '')) !== '';
     }
 
     /**

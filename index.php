@@ -24,6 +24,7 @@ require __DIR__ . '/cms/ReleaseSmokeTester.php';
 require __DIR__ . '/cms/DocumentCodec.php';
 require __DIR__ . '/cms/GitWorkspace.php';
 require __DIR__ . '/cms/AdminWorkspace.php';
+require __DIR__ . '/cms/SetupAssistant.php';
 
 /**
  * Processes app base URL.
@@ -1374,9 +1375,9 @@ function render_config_setup_page(string $message): void
         . 'h1{margin:.1rem 0 1rem;font-size:2rem}p{line-height:1.6;color:#c9d7df}'
         . 'pre{white-space:pre-wrap;line-height:1.6;background:rgba(255,255,255,.04);padding:1rem;border-radius:12px;overflow:auto}'
         . '</style></head><body><main class="setup"><section class="panel"><p class="eyebrow">Setup Required</p>'
-        . '<h1>Die lokale CMS-Konfiguration fehlt oder ist ungueltig.</h1>'
-        . '<p>Dieses Repository liefert bewusst nur die Vorlage <code>site.config.sample.php</code>. '
-        . 'Lege daraus lokal eine <code>site.config.php</code> an und konfiguriere dort die Pfade zu deinem lokalen Content-Bestand.</p>'
+        . '<h1>Die lokale CMS-Konfiguration ist vorhanden, aber nicht lauffaehig.</h1>'
+        . '<p>Fuer frische Webspace-Uploads startet WorldMesh automatisch den Setup-Assistenten. '
+        . 'Wenn du diese Meldung siehst, existiert bereits eine <code>site.config.php</code>, die manuell korrigiert werden muss.</p>'
         . '<pre>' . $safeMessage . '</pre></section></main></body></html>';
     exit;
 }
@@ -1384,7 +1385,13 @@ function render_config_setup_page(string $message): void
 try {
     $siteConfig = SiteConfigLoader::load(__DIR__);
 } catch (RuntimeException $exception) {
-    render_config_setup_page($exception->getMessage());
+    $configReport = SiteConfigLoader::validate(__DIR__);
+    $setupAssistant = new SetupAssistant(__DIR__, app_base_url());
+    if ($setupAssistant->canHandle($configReport)) {
+        $setupAssistant->handle($configReport);
+    }
+
+    render_config_setup_page(SiteConfigLoader::formatReport($configReport));
 }
 
 $siteDefaults = array(
@@ -1453,6 +1460,18 @@ $mermaidDefaults = array(
     'scriptPath' => 'assets/vendor/mermaid/mermaid.min.js',
     'securityLevel' => 'antiscript',
     'options' => array(),
+);
+$worldorbitDefaults = array(
+    'enabled' => true,
+    'scriptPath' => 'assets/vendor/worldorbit/worldorbit.min.js',
+    'viewer' => array(
+        'theme' => 'atlas',
+        'projection' => 'document',
+        'selection' => true,
+        'tooltipMode' => 'hover',
+        'minimap' => false,
+        'fitPadding' => 36,
+    ),
 );
 $cytoscapeDefaults = array(
     'enabled' => true,
@@ -1538,6 +1557,7 @@ if (trim((string) ($localeViewConfig['contentRoot'] ?? '')) !== '') {
 }
 $integrationsConfig = is_array($siteConfig['integrations'] ?? null) ? $siteConfig['integrations'] : array();
 $mermaidSettings = array_replace($mermaidDefaults, is_array($integrationsConfig['mermaid'] ?? null) ? $integrationsConfig['mermaid'] : array());
+$worldorbitSettings = array_replace($worldorbitDefaults, is_array($integrationsConfig['worldorbit'] ?? null) ? $integrationsConfig['worldorbit'] : array());
 $cytoscapeSettings = array_replace($cytoscapeDefaults, is_array($integrationsConfig['cytoscape'] ?? null) ? $integrationsConfig['cytoscape'] : array());
 
 $siteLanguage = trim((string) ($siteSettings['lang'] ?? ($activeLocale !== '' ? $activeLocale : 'de')))
@@ -1646,6 +1666,21 @@ $mermaidClientConfig = array(
     'options' => is_array($mermaidSettings['options'] ?? null) ? $mermaidSettings['options'] : array(),
 );
 $mermaidClientConfigJson = json_encode($mermaidClientConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$worldorbitScriptPath = trim((string) ($worldorbitSettings['scriptPath'] ?? ''));
+$worldorbitScriptUrl = '';
+if ($worldorbitScriptPath !== '') {
+    $worldorbitScriptUrl = preg_match('/^(https?:)?\/\//i', $worldorbitScriptPath) === 1
+        ? $worldorbitScriptPath
+        : $repository->assetUrl(ltrim($worldorbitScriptPath, '/'));
+}
+
+$worldorbitEnabled = !empty($worldorbitSettings['enabled']) && $worldorbitScriptUrl !== '';
+$worldorbitClientConfig = array(
+    'enabled' => $worldorbitEnabled,
+    'scriptUrl' => $worldorbitScriptUrl,
+    'viewer' => is_array($worldorbitSettings['viewer'] ?? null) ? $worldorbitSettings['viewer'] : array(),
+);
+$worldorbitClientConfigJson = json_encode($worldorbitClientConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 $cytoscapeScriptPath = trim((string) ($cytoscapeSettings['scriptPath'] ?? ''));
 $cytoscapeScriptUrl = '';
 if ($cytoscapeScriptPath !== '') {
@@ -1680,6 +1715,7 @@ $adminWorkspace = new AdminWorkspace(
         collect_git_managed_content_paths($siteConfig)
     ),
     $mermaidClientConfig,
+    $worldorbitClientConfig,
     $cytoscapeClientConfig,
     $moduleStylesheets
 );
@@ -1980,6 +2016,7 @@ if ($contentArticleHtml === '') {
 }
 
 $pageHasMermaid = $contentHtml !== '' && strpos($contentHtml, 'data-mermaid-block') !== false;
+$pageHasWorldOrbit = $contentHtml !== '' && strpos($contentHtml, 'data-worldorbit-block') !== false;
 $pageHasCytoscape = $contentHtml !== '' && strpos($contentHtml, 'data-cms-graph-block') !== false;
 
 $stats = $repository->getStats();
@@ -2197,6 +2234,7 @@ $pageLoaderLabel = 'Inhalte werden geladen...';
                 themeAssets: <?= $themeAssetManifestJson ?: '{}' ?>,
             };
             window.__CMS_MERMAID = <?= $mermaidClientConfigJson ?: '{}' ?>;
+            window.__CMS_WORLDORBIT = <?= $worldorbitClientConfigJson ?: '{}' ?>;
             window.__CMS_CYTOSCAPE = <?= $cytoscapeClientConfigJson ?: '{}' ?>;
         })();
     </script>
@@ -2230,6 +2268,9 @@ $pageLoaderLabel = 'Inhalte werden geladen...';
 <?php endforeach; ?>
 <?php if ($mermaidEnabled && $pageHasMermaid): ?>
     <script src="<?= e($repository->assetUrl('assets/mermaid.js')) ?>" defer></script>
+<?php endif; ?>
+<?php if ($worldorbitEnabled && $pageHasWorldOrbit): ?>
+    <script src="<?= e($repository->assetUrl('assets/worldorbit.js')) ?>" defer></script>
 <?php endif; ?>
 <?php if ($cytoscapeEnabled && $pageHasCytoscape): ?>
     <script src="<?= e($repository->assetUrl('assets/cytoscape.js')) ?>" defer></script>

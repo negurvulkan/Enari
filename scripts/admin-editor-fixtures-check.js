@@ -121,6 +121,40 @@ runTest("graph builder roundtrip", () => {
     assert.equal(adapter.hydrateMarkdown(wrapped.visualMarkdown, wrapped.extensions), normalize(block));
 });
 
+runTest("worldorbit block parse and roundtrip", () => {
+    const block = normalize([
+        "```worldorbit",
+        "schema 2.5",
+        "",
+        "#cms-bind object=example-planet page=./00_Uebersicht.md",
+        "#cms-bind object=example-star page=demo.archive.overview",
+        "",
+        "system example-system",
+        "    title \"Example System\"",
+        "",
+        "star example-star",
+        "planet example-planet orbit example-star distance 1 au",
+        "```",
+    ].join("\n"));
+
+    const parsed = adapter.parseWorldOrbitBlock(block);
+    assert.equal(parsed.language, "worldorbit");
+    assert.equal(parsed.schemaVersion, "2.5");
+    assert.equal(parsed.systemId, "example-system");
+    assert.equal(parsed.title, "Example System");
+    assert.equal(parsed.bindingCount, 2);
+    assert.equal(parsed.bindings[0].objectId, "example-planet");
+    assert.equal(parsed.bindings[0].pageTarget, "./00_Uebersicht.md");
+
+    const wrapped = adapter.parseMarkdownExtensions(block);
+    assert.equal(wrapped.extensions.length, 1);
+    assert.equal(wrapped.extensions[0].type, "worldorbit");
+    assert.equal(wrapped.extensions[0].parsed.bindingCount, 2);
+    assert.match(wrapped.extensions[0].summary, /WorldOrbit/i);
+    assert.match(wrapped.extensions[0].meta, /schema=/i);
+    assert.equal(adapter.hydrateMarkdown(wrapped.visualMarkdown, wrapped.extensions), block);
+});
+
 runTest("unknown directive block stays raw", () => {
     const block = normalize([
         "::note",
@@ -148,6 +182,15 @@ runTest("mixed document roundtrip preserves extension order", () => {
         "A->>B: hello",
         "```",
         "",
+        "```worldorbit",
+        "schema 2.5",
+        "#cms-bind object=example page=demo.archive.overview",
+        "system example-system",
+        "    title \"Example System\"",
+        "star example-star",
+        "planet example orbit example-star distance 1 au",
+        "```",
+        "",
         "::graph",
         "title: Example",
         "from: example",
@@ -157,10 +200,10 @@ runTest("mixed document roundtrip preserves extension order", () => {
     ].join("\n"));
 
     const parsed = adapter.parseMarkdownExtensions(markdown);
-    assert.equal(parsed.extensions.length, 3);
+    assert.equal(parsed.extensions.length, 4);
     assert.deepEqual(
         parsed.extensions.map((item) => item.type),
-        ["embed", "mermaid", "graph"]
+        ["embed", "mermaid", "worldorbit", "graph"]
     );
     assert.equal(adapter.hydrateMarkdown(parsed.visualMarkdown, parsed.extensions), markdown);
 });

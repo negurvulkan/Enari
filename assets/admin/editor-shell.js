@@ -167,6 +167,11 @@
                 return `Graph · ${parsed.title || parsed.from || "block"}`;
             }
 
+            if (item.type === "worldorbit") {
+                const parsed = item.parsed || {};
+                return `WorldOrbit · ${parsed.title || parsed.systemId || "atlas"}`;
+            }
+
             return item.summary || "Raw block";
         }
 
@@ -711,6 +716,11 @@
                     void openMermaidDialog();
                 });
             }
+            if (refs.worldorbitButton) {
+                refs.worldorbitButton.addEventListener("click", function () {
+                    void openWorldOrbitDialog();
+                });
+            }
             if (refs.graphButton) {
                 refs.graphButton.addEventListener("click", function () {
                     void openGraphDialog();
@@ -733,6 +743,7 @@
             openLinkDialog,
             openEmbedDialog,
             openMermaidDialog,
+            openWorldOrbitDialog,
             openGraphDialog,
         };
 
@@ -755,6 +766,10 @@
             }
             if (item.type === "graph") {
                 await openGraphDialog(item);
+                return;
+            }
+            if (item.type === "worldorbit") {
+                await openWorldOrbitDialog(item);
                 return;
             }
             await openRawDialog(item);
@@ -783,6 +798,112 @@
                 dialog.close();
             });
             dialog.footer.append(cancelButton, saveButton);
+        }
+
+        /**
+         * Builds a starter WorldOrbit block.
+         */
+        function createWorldOrbitStarterBlock() {
+            const defaultTarget = state.currentPath
+                ? makeRelativeReference(state.currentPath, state.currentPath)
+                : "./00_Uebersicht.md";
+            return [
+                "```worldorbit",
+                "schema 2.5",
+                "",
+                `#cms-bind object=example-planet page=${defaultTarget}`,
+                "",
+                "system example-system",
+                "    title \"Example System\"",
+                "",
+                "star example-star",
+                "planet example-planet orbit example-star distance 1 au",
+                "```",
+            ].join("\n");
+        }
+
+        async function openWorldOrbitDialog(item) {
+            const initialRaw = item ? item.raw : createWorldOrbitStarterBlock();
+            const dialog = createDialog("WorldOrbit-Block");
+            const metaGrid = document.createElement("div");
+            metaGrid.className = "admin-modal__grid";
+
+            const schemaField = buildLabeledInput("Schema");
+            const systemField = buildLabeledInput("System");
+            const titleField = buildLabeledInput("Titel");
+            const bindingsField = buildLabeledInput("CMS-Bindungen");
+            [schemaField.input, systemField.input, titleField.input, bindingsField.input].forEach(function (input) {
+                input.readOnly = true;
+            });
+
+            metaGrid.append(schemaField.wrapper, systemField.wrapper, titleField.wrapper, bindingsField.wrapper);
+
+            const note = document.createElement("p");
+            note.className = "admin-document__meta";
+            note.textContent = "Bearbeitung laeuft in v1 als Raw-DSL. CMS-Ziele werden explizit ueber #cms-bind object=... page=... verknuepft.";
+
+            const rawField = buildLabeledTextarea("WorldOrbit-Definition", initialRaw, 18);
+            rawField.textarea.className = "admin-frontmatter admin-modal__textarea";
+            rawField.textarea.spellcheck = false;
+
+            const previewFrame = document.createElement("iframe");
+            previewFrame.className = "admin-modal__preview-frame";
+            previewFrame.title = "WorldOrbit Preview";
+
+            dialog.body.append(metaGrid, note, rawField.wrapper, previewFrame);
+
+            /**
+             * Reads current block source.
+             */
+            function readRawBlock() {
+                return String(rawField.textarea.value || "").replace(/\r\n?/g, "\n").trim();
+            }
+
+            /**
+             * Refreshes derived metadata.
+             */
+            function refreshMeta() {
+                const parsed = adapter.parseWorldOrbitBlock(readRawBlock());
+                schemaField.input.value = parsed.schemaVersion || "";
+                systemField.input.value = parsed.systemId || "";
+                titleField.input.value = parsed.title || "";
+                bindingsField.input.value = String(parsed.bindingCount || 0);
+            }
+
+            /**
+             * Refreshes preview.
+             */
+            function refreshPreview() {
+                const markdown = readRawBlock();
+                refreshMeta();
+                if (!markdown) {
+                    previewFrame.srcdoc = "<html><body style=\"margin:0;font-family:sans-serif;background:#101722;color:#eef5ff;padding:1rem;\"><p>WorldOrbit-Block leer.</p></body></html>";
+                    return;
+                }
+                scheduleFramePreview(renderServerPreview, previewFrame, markdown, "WorldOrbit-Preview wird geladen...");
+            }
+
+            rawField.textarea.addEventListener("input", refreshPreview);
+            rawField.textarea.addEventListener("change", refreshPreview);
+
+            const cancelButton = createDialogButton("Abbrechen", "admin-button--ghost");
+            const saveButton = createDialogButton(item ? "Aktualisieren" : "Einfuegen", "admin-button--primary");
+            cancelButton.addEventListener("click", dialog.close);
+            saveButton.addEventListener("click", function () {
+                const markdown = readRawBlock();
+                if (!markdown) {
+                    rawField.textarea.focus();
+                    return;
+                }
+                if (item) {
+                    replaceExtension(item.id, markdown);
+                } else {
+                    insertExtension(markdown, "worldorbit", false);
+                }
+                dialog.close();
+            });
+            dialog.footer.append(cancelButton, saveButton);
+            refreshPreview();
         }
 
         async function openLinkDialog() {

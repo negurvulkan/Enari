@@ -257,6 +257,7 @@
     const insertMediaButton = document.querySelector("[data-admin-insert-media]");
     const insertIconButton = document.querySelector("[data-admin-insert-icon]");
     const insertMermaidButton = document.querySelector("[data-admin-insert-mermaid]");
+    const insertWorldOrbitButton = document.querySelector("[data-admin-insert-worldorbit]");
     const insertGraphButton = document.querySelector("[data-admin-insert-graph]");
     const bodyField = document.querySelector("[data-admin-body]");
     const customFrontmatterField = document.querySelector("[data-admin-custom-frontmatter]");
@@ -2755,6 +2756,7 @@
                 mediaButton: insertMediaButton,
                 iconButton: insertIconButton,
                 mermaidButton: insertMermaidButton,
+                worldorbitButton: insertWorldOrbitButton,
                 graphButton: insertGraphButton,
             },
             previewRenderer: async (markdown) => {

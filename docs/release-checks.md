@@ -26,7 +26,11 @@ Der Config-Check prueft:
 - ob Pflichtbereiche wie `content`, `i18n`, `site`, `homePage`, `standalonePages` und `admin` vorhanden sind
 - ob referenzierte Pfade wie Content-Roots, Homepages, Standalone-Pages, Preview-Theme und Modul-Bootstraps existieren
 
-Wenn die Runtime-Config fehlt, kopiere zunaechst `site.config.sample.php` nach `site.config.php`.
+Wenn die Runtime-Config fehlt, gibt es jetzt drei Wege:
+
+- auf frischem Webspace einfach die Ziel-URL aufrufen; der Browser-Setup-Assistent erzeugt dann `site.config.php`
+- fuer Hosts ohne Schreibrechte im Projektordner `powershell -ExecutionPolicy Bypass -File scripts/setup-webspace.ps1` nutzen
+- alternativ weiterhin `site.config.sample.php` manuell nach `site.config.php` kopieren
 
 ## 2. Content-Validator
 
@@ -92,7 +96,8 @@ php scripts/release-check.php --strict
 Typische Ursachen:
 
 - `missing_config_file`
-  - `site.config.php` fehlt. Kopiere `site.config.sample.php` an diesen Pfad.
+  - `site.config.php` fehlt. Auf frischem Webspace startet dann der Browser-Setup-Assistent automatisch.
+  - Fuer lokale oder gesperrte Umgebungen kannst du alternativ `scripts/setup-webspace.ps1` nutzen oder `site.config.sample.php` manuell an diesen Pfad kopieren.
 - `invalid_config_return`
   - Die Config liefert kein PHP-Array zurueck.
 - `missing_required_section`
