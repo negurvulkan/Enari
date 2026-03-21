@@ -11,7 +11,7 @@ declare(strict_types=1);
  */
 final class AdminWorkspace
 {
-    private const SESSION_KEY = 'worldmesh_admin';
+    private const SESSION_KEY = 'loreroot_admin';
 
     /**
      * Stores the base path.
@@ -126,6 +126,13 @@ final class AdminWorkspace
     private $cytoscapeClientConfig;
 
     /**
+     * Stores map client config.
+     *
+     * @var array<string, mixed>
+     */
+    private $mapClientConfig;
+
+    /**
      * Stores module stylesheets.
      *
      * @var string[]
@@ -161,6 +168,7 @@ final class AdminWorkspace
      * @param array<string, mixed> $mermaidClientConfig
      * @param array<string, mixed> $worldorbitClientConfig
      * @param array<string, mixed> $cytoscapeClientConfig
+     * @param array<string, mixed> $mapClientConfig
      * @param array<int, string|array<string, mixed>> $moduleStylesheets
      */
     public function __construct(
@@ -179,6 +187,7 @@ final class AdminWorkspace
         array $mermaidClientConfig,
         array $worldorbitClientConfig,
         array $cytoscapeClientConfig,
+        array $mapClientConfig,
         array $moduleStylesheets = array()
     ) {
         $this->basePath = rtrim(str_replace('\\', '/', $basePath), '/');
@@ -198,6 +207,7 @@ final class AdminWorkspace
         $this->mermaidClientConfig = $mermaidClientConfig;
         $this->worldorbitClientConfig = $worldorbitClientConfig;
         $this->cytoscapeClientConfig = $cytoscapeClientConfig;
+        $this->mapClientConfig = $mapClientConfig;
         $this->moduleStylesheets = $this->normalizeAssetUrls($moduleStylesheets);
 
         foreach ($this->repository->getDocuments() as $document) {
@@ -377,7 +387,7 @@ final class AdminWorkspace
             'password' => $password,
             'passwordHash' => $passwordHash,
             'historyRoot' => $historyRoot !== '' ? $historyRoot : 'cache/admin-history',
-            'sessionCookie' => trim((string) ($adminConfig['sessionCookie'] ?? 'worldmesh-admin')),
+            'sessionCookie' => trim((string) ($adminConfig['sessionCookie'] ?? 'loreroot-admin')),
             'trustedLocalFallback' => !array_key_exists('trustedLocalFallback', $adminConfig) || !empty($adminConfig['trustedLocalFallback']),
             'theme' => $adminTheme,
             'previewTheme' => $previewTheme,
@@ -393,7 +403,7 @@ final class AdminWorkspace
             return;
         }
 
-        $cookieName = trim((string) ($this->config['sessionCookie'] ?? 'worldmesh-admin'));
+        $cookieName = trim((string) ($this->config['sessionCookie'] ?? 'loreroot-admin'));
         if ($cookieName !== '') {
             session_name($cookieName);
         }
@@ -667,9 +677,9 @@ final class AdminWorkspace
         }
 
         header('Content-Type: text/html; charset=utf-8');
-        $adminBrand = trim((string) (($this->siteConfig['site']['brandTitle'] ?? $this->siteConfig['site']['name'] ?? 'WorldMesh')));
+        $adminBrand = trim((string) (($this->siteConfig['site']['brandTitle'] ?? $this->siteConfig['site']['name'] ?? 'LoreRoot')));
         if ($adminBrand === '') {
-            $adminBrand = 'WorldMesh';
+            $adminBrand = 'LoreRoot';
         }
 
         echo $this->templateRenderer->render($this->adminTemplateName('admin-app.tpl'), array(
@@ -681,6 +691,7 @@ final class AdminWorkspace
             'scripts' => $this->buildAdminScriptUrls(),
             'bootstrapJson' => $bootstrapJson !== false ? $bootstrapJson : '{}',
             'adminBrand' => $adminBrand,
+            'claim' => 'A file-based Markdown system for worldbuilding and structured lore',
             'hasCredentials' => $this->hasConfiguredCredentials(),
             'logoutActionUrl' => $this->adminUrl('logout'),
             'csrfToken' => $this->ensureCsrfToken(),
@@ -712,9 +723,9 @@ final class AdminWorkspace
         echo '</div>';
         echo '<p class="theme-loader__label" data-admin-loader-label>Arbeitsbereich wird geladen...</p>';
         echo '</div></div>';
-        $adminBrand = trim((string) (($this->siteConfig['site']['brandTitle'] ?? $this->siteConfig['site']['name'] ?? 'WorldMesh')));
+        $adminBrand = trim((string) (($this->siteConfig['site']['brandTitle'] ?? $this->siteConfig['site']['name'] ?? 'LoreRoot')));
         if ($adminBrand === '') {
-            $adminBrand = 'WorldMesh';
+            $adminBrand = 'LoreRoot';
         }
 
         echo $this->templateRenderer->render($this->adminTemplateName('admin-app.tpl'), array(
@@ -917,6 +928,21 @@ final class AdminWorkspace
             return;
         }
 
+        if ($apiPath === 'catalog') {
+            $this->handleCatalogApi();
+            return;
+        }
+
+        if ($apiPath === 'catalog/bulk-update') {
+            $this->handleCatalogBulkUpdateApi();
+            return;
+        }
+
+        if ($apiPath === 'document/create') {
+            $this->handleDocumentCreateApi();
+            return;
+        }
+
         if ($apiPath === 'media') {
             $this->handleMediaApi();
             return;
@@ -957,8 +983,28 @@ final class AdminWorkspace
             return;
         }
 
+        if ($apiPath === 'history/compare') {
+            $this->handleHistoryCompareApi();
+            return;
+        }
+
         if ($apiPath === 'health') {
             $this->handleHealthApi();
+            return;
+        }
+
+        if ($apiPath === 'maps') {
+            $this->handleMapsApi();
+            return;
+        }
+
+        if ($apiPath === 'maps/save') {
+            $this->handleMapsSaveApi();
+            return;
+        }
+
+        if ($apiPath === 'maps/delete') {
+            $this->handleMapsDeleteApi();
             return;
         }
 
@@ -1019,6 +1065,11 @@ final class AdminWorkspace
 
         if ($apiPath === 'git/history') {
             $this->handleGitHistoryApi();
+            return;
+        }
+
+        if ($apiPath === 'git/history/compare') {
+            $this->handleGitHistoryCompareApi();
             return;
         }
 
@@ -1147,6 +1198,223 @@ final class AdminWorkspace
             'message' => 'Dokument gespeichert.',
             'path' => $targetPath,
             'history' => $this->listHistoryEntries($targetPath),
+        ));
+    }
+
+    /**
+     * Handles catalog API.
+     */
+    private function handleCatalogApi(): void
+    {
+        $filters = array(
+            'query' => trim((string) ($_GET['query'] ?? '')),
+            'locale' => trim((string) ($_GET['locale'] ?? '')),
+            'type' => trim((string) ($_GET['type'] ?? '')),
+            'root' => trim((string) ($_GET['root'] ?? '')),
+            'tag' => trim((string) ($_GET['tag'] ?? '')),
+            'missingLocale' => trim((string) ($_GET['missingLocale'] ?? '')),
+            'standalone' => trim((string) ($_GET['standalone'] ?? '')),
+            'overview' => trim((string) ($_GET['overview'] ?? '')),
+            'schemaField' => trim((string) ($_GET['schemaField'] ?? '')),
+            'schemaValue' => trim((string) ($_GET['schemaValue'] ?? '')),
+        );
+
+        $this->jsonResponse(array(
+            'ok' => true,
+            'catalog' => $this->buildCatalogPayload($filters),
+        ));
+    }
+
+    /**
+     * Handles bulk metadata updates from the Library workspace.
+     */
+    private function handleCatalogBulkUpdateApi(): void
+    {
+        $payload = $this->readJsonPayload();
+        $paths = array_values(array_filter(array_map(function ($value): string {
+            return $this->normalizePath((string) $value);
+        }, is_array($payload['paths'] ?? null) ? $payload['paths'] : array()), 'strlen'));
+        $fieldId = trim((string) ($payload['fieldId'] ?? ''));
+
+        if ($paths === array() || $fieldId === '') {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Es wurden keine Dokumente oder kein Bulk-Feld uebergeben.',
+            ), 400);
+            return;
+        }
+
+        $updated = array();
+        $skipped = array();
+
+        foreach ($paths as $path) {
+            $document = $this->resolveDocumentByPath($path);
+            if ($document === null || !$this->isEditableMarkdownPath($path)) {
+                $skipped[] = array(
+                    'path' => $path,
+                    'reason' => 'Dokument konnte nicht geladen werden.',
+                );
+                continue;
+            }
+
+            $editorPayload = $this->buildEditorDocumentPayload($document);
+            $bulkField = $this->resolveBulkFieldDefinition($document, $fieldId);
+            if ($bulkField === null) {
+                $skipped[] = array(
+                    'path' => $path,
+                    'reason' => 'Das Feld ist fuer dieses Dokument nicht bulk-editierbar.',
+                );
+                continue;
+            }
+
+            $fieldType = (string) ($bulkField['type'] ?? 'text');
+            $normalizedValue = $this->normalizeFieldInputValue($fieldType, $payload['value'] ?? null);
+            if ($fieldType === 'boolean' && !array_key_exists('value', $payload)) {
+                $normalizedValue = false;
+            }
+
+            if (!empty($bulkField['metadata'])) {
+                $editorPayload['metadata'][$fieldId] = $normalizedValue;
+            } else {
+                $editorPayload['typedFields'][$fieldId] = $normalizedValue;
+            }
+
+            $normalized = $this->normalizeEditorPayload($editorPayload, $document);
+            $validation = $this->validateEditorPayload($normalized, $document);
+            if (!empty($validation['hasErrors'])) {
+                $skipped[] = array(
+                    'path' => $path,
+                    'reason' => 'Bulk-Aenderung erzeugt Validierungsfehler.',
+                    'validation' => $validation,
+                );
+                continue;
+            }
+
+            $content = $this->documentCodec->encodeDocument(
+                is_array($normalized['frontmatter'] ?? null) ? $normalized['frontmatter'] : array(),
+                (string) ($normalized['body'] ?? '')
+            );
+            $currentContent = @file_get_contents($this->fullPath($path));
+            if (is_string($currentContent) && $currentContent === $content) {
+                continue;
+            }
+
+            $this->snapshotCurrentDocument($path, 'bulk-update');
+            $this->writeMarkdownFile($path, $content);
+            $updated[] = $path;
+        }
+
+        $this->jsonResponse(array(
+            'ok' => true,
+            'message' => count($updated) > 0
+                ? count($updated) . ' Dokument(e) wurden aktualisiert.'
+                : 'Keine Dokumente mussten aktualisiert werden.',
+            'updatedPaths' => $updated,
+            'skipped' => $skipped,
+            'catalog' => $this->buildCatalogPayload(array()),
+        ));
+    }
+
+    /**
+     * Handles document create API.
+     */
+    private function handleDocumentCreateApi(): void
+    {
+        $payload = $this->readJsonPayload();
+        $locale = $this->normalizeLocaleKey((string) ($payload['locale'] ?? ''));
+        $typeId = trim((string) ($payload['typeId'] ?? ''));
+        $title = trim((string) ($payload['title'] ?? ''));
+        $targetDirectory = $this->normalizePath((string) ($payload['targetDirectory'] ?? ''));
+        $slugInput = trim((string) ($payload['slug'] ?? ''));
+        $slug = $slugInput !== '' ? $this->normalizePath($slugInput) : $this->slugifyPathSegment($title);
+        $contentRoot = $this->normalizePath((string) ($this->repository->getContentRootsByLocale()[$locale] ?? ''));
+
+        if ($title === '' || $typeId === '' || $locale === '' || $contentRoot === '') {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Locale, Typ und Titel sind fuer neue Eintraege erforderlich.',
+            ), 400);
+            return;
+        }
+
+        if ($targetDirectory === '') {
+            $targetDirectory = $contentRoot;
+        }
+
+        if (!$this->pathIsWithin($targetDirectory, $contentRoot)) {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Das Zielverzeichnis liegt ausserhalb der aktuellen Locale-Wurzel.',
+            ), 400);
+            return;
+        }
+
+        if ($slug === '') {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Aus dem Titel konnte kein gueltiger Dateiname abgeleitet werden.',
+            ), 400);
+            return;
+        }
+
+        $targetPath = $this->normalizePath($targetDirectory . '/' . $slug . '.md');
+        if (!$this->isEditableMarkdownPath($targetPath)) {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Die Zieldatei liegt ausserhalb der erlaubten Inhaltsbereiche.',
+            ), 400);
+            return;
+        }
+
+        if (is_file($this->fullPath($targetPath))) {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Im Ziel existiert bereits ein Dokument mit diesem Namen.',
+            ), 409);
+            return;
+        }
+
+        $editorPayload = array(
+            'path' => $targetPath,
+            'metadata' => array(
+                'title' => $title,
+                'slug' => $slug,
+                'type' => $typeId,
+                'translation_key' => trim((string) ($payload['translationKey'] ?? '')),
+                'excerpt' => trim((string) ($payload['excerpt'] ?? '')),
+                'description' => trim((string) ($payload['description'] ?? '')),
+                'tags' => $payload['tags'] ?? array(),
+                'aliases' => array(),
+            ),
+            'typedFields' => is_array($payload['typedFields'] ?? null) ? $payload['typedFields'] : array(),
+            'relations' => array(),
+            'customFrontmatterYaml' => '',
+            'body' => $this->loadTypeStarterBody($typeId, $title),
+        );
+
+        $normalized = $this->normalizeEditorPayload($editorPayload, null);
+        $validation = $this->validateEditorPayload($normalized, null);
+        if (!empty($validation['hasErrors'])) {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Der neue Eintrag enthaelt Validierungsfehler.',
+                'validation' => $validation,
+            ), 422);
+            return;
+        }
+
+        $content = $this->documentCodec->encodeDocument(
+            is_array($normalized['frontmatter'] ?? null) ? $normalized['frontmatter'] : array(),
+            (string) ($normalized['body'] ?? '')
+        );
+        $this->writeMarkdownFile($targetPath, $content);
+
+        $this->jsonResponse(array(
+            'ok' => true,
+            'message' => 'Eintrag wurde erstellt.',
+            'path' => $targetPath,
+            'document' => $this->buildCreatedDocumentPayload($normalized),
+            'catalog' => $this->buildCatalogPayload(array()),
         ));
     }
 
@@ -1470,6 +1738,46 @@ final class AdminWorkspace
     }
 
     /**
+     * Handles history compare API.
+     */
+    private function handleHistoryCompareApi(): void
+    {
+        $path = $this->normalizePath((string) ($_GET['path'] ?? ''));
+        $snapshotId = trim((string) ($_GET['snapshotId'] ?? ''));
+        if (!$this->isEditableMarkdownPath($path) || $snapshotId === '') {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Pfad oder Snapshot-ID fehlen.',
+            ), 400);
+            return;
+        }
+
+        $snapshotPath = $this->resolveSnapshotPath($path, $snapshotId);
+        if ($snapshotPath === '') {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Snapshot nicht gefunden.',
+            ), 404);
+            return;
+        }
+
+        $currentContent = @file_get_contents($this->fullPath($path));
+        $snapshotContent = @file_get_contents($snapshotPath);
+        if (!is_string($currentContent) || !is_string($snapshotContent)) {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Snapshot oder aktuelles Dokument konnten nicht gelesen werden.',
+            ), 500);
+            return;
+        }
+
+        $this->jsonResponse(array(
+            'ok' => true,
+            'compare' => $this->buildDocumentComparePayload($path, $snapshotContent, $currentContent, $snapshotId),
+        ));
+    }
+
+    /**
      * Handles health API.
      */
     private function handleHealthApi(): void
@@ -1478,6 +1786,84 @@ final class AdminWorkspace
         $this->jsonResponse(array(
             'ok' => true,
             'report' => $this->buildHealthReport($includeSmoke),
+        ));
+    }
+
+    /**
+     * Handles map manifest lookup API.
+     */
+    private function handleMapsApi(): void
+    {
+        $assetPath = $this->normalizePath((string) ($_GET['path'] ?? ''));
+        if (!$this->assetSupportsMapPins($assetPath)) {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Nur verwaltete Bilddateien koennen Karten-Pins verwenden.',
+            ), 400);
+            return;
+        }
+
+        $this->jsonResponse(array(
+            'ok' => true,
+            'map' => $this->buildMapManifestPayload($assetPath),
+        ));
+    }
+
+    /**
+     * Handles map manifest save API.
+     */
+    private function handleMapsSaveApi(): void
+    {
+        $payload = $this->readJsonPayload();
+        $assetPath = $this->normalizePath((string) ($payload['path'] ?? ''));
+        if (!$this->assetSupportsMapPins($assetPath)) {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Nur verwaltete Bilddateien koennen Karten-Pins verwenden.',
+            ), 400);
+            return;
+        }
+
+        $manifest = $this->normalizeMapManifestPayload(is_array($payload['map'] ?? null) ? $payload['map'] : array());
+        $this->writeMapManifest($assetPath, $manifest);
+
+        $this->jsonResponse(array(
+            'ok' => true,
+            'message' => 'Karten-Pins gespeichert.',
+            'map' => $this->buildMapManifestPayload($assetPath),
+            'browser' => $this->buildMediaBrowserPayload(
+                $this->normalizePath(dirname($assetPath)),
+                $this->normalizePath((string) ($payload['currentPath'] ?? '')),
+                $this->normalizeLocaleKey((string) ($payload['locale'] ?? '')),
+                '',
+                'all',
+                'name',
+                $assetPath
+            ),
+        ));
+    }
+
+    /**
+     * Handles map manifest delete API.
+     */
+    private function handleMapsDeleteApi(): void
+    {
+        $payload = $this->readJsonPayload();
+        $assetPath = $this->normalizePath((string) ($payload['path'] ?? ''));
+        if (!$this->assetSupportsMapPins($assetPath)) {
+            $this->jsonResponse(array(
+                'ok' => false,
+                'message' => 'Nur verwaltete Bilddateien koennen Karten-Pins verwenden.',
+            ), 400);
+            return;
+        }
+
+        $this->deleteMapManifest($assetPath);
+
+        $this->jsonResponse(array(
+            'ok' => true,
+            'message' => 'Karten-Pins geloescht.',
+            'map' => $this->buildMapManifestPayload($assetPath),
         ));
     }
 
@@ -1766,6 +2152,21 @@ final class AdminWorkspace
         }
         if (isset($result['history']) && is_array($result['history'])) {
             $result['history'] = $this->decorateGitHistoryEntries($result['history']);
+        }
+
+        $this->jsonResponse($result, !empty($result['ok']) ? 200 : 422);
+    }
+
+    /**
+     * Handles Git history compare API.
+     */
+    private function handleGitHistoryCompareApi(): void
+    {
+        $revision = trim((string) ($_GET['revision'] ?? ''));
+        $path = trim((string) ($_GET['path'] ?? ''));
+        $result = $this->gitWorkspace->historyCompare($revision, $path);
+        if (isset($result['status']) && is_array($result['status'])) {
+            $result['status'] = $this->decorateGitStatusPayload($result['status']);
         }
 
         $this->jsonResponse($result, !empty($result['ok']) ? 200 : 422);
@@ -2530,12 +2931,31 @@ final class AdminWorkspace
         }, $this->sortDocumentsForAdmin($this->repository->getDocuments())));
         $selectedPath = $this->normalizePath((string) ($_GET['path'] ?? ''));
         $stats = $this->repository->getStats();
+        $siteName = trim((string) (($this->siteConfig['site']['name'] ?? 'LoreRoot')));
+        $brandTitle = trim((string) (($this->siteConfig['site']['brandTitle'] ?? $siteName)));
+        $claim = 'A file-based Markdown system for worldbuilding and structured lore';
 
         return array(
             'csrfToken' => $this->ensureCsrfToken(),
             'adminTitle' => (string) ($this->config['title'] ?? 'CMS Workspace'),
             'adminBaseUrl' => $this->adminUrl(),
+            'brand' => array(
+                'name' => $siteName !== '' ? $siteName : 'LoreRoot',
+                'brandTitle' => $brandTitle !== '' ? $brandTitle : 'LoreRoot',
+                'claim' => $claim,
+            ),
             'documents' => $documents,
+            'catalog' => $this->buildCatalogPayload(array()),
+            'create' => $this->buildCreateConfigPayload(),
+            'revisions' => array(
+                'historyEnabled' => true,
+                'compareEnabled' => true,
+                'gitCompareEnabled' => true,
+            ),
+            'maps' => array(
+                'enabled' => !empty($this->mapClientConfig['enabled']),
+                'viewer' => is_array($this->mapClientConfig['viewer'] ?? null) ? $this->mapClientConfig['viewer'] : array(),
+            ),
             'editor' => $this->buildEditorConfigPayload(),
             'locales' => $this->buildLocalePayload(),
             'types' => $this->schemaRegistry->getTypes(),
@@ -2590,6 +3010,16 @@ final class AdminWorkspace
         $translationKey = trim((string) ($document['translationKey'] ?? ''));
         $variantSummary = array();
         $missingLocales = array();
+        $path = $this->normalizePath((string) ($document['relativePath'] ?? ''));
+        $typeId = (string) ($document['entryTypeId'] ?? '');
+        $type = $typeId !== '' ? $this->schemaRegistry->getType($typeId) : null;
+        $locale = (string) ($document['locale'] ?? '');
+        $contentRoots = $this->repository->getContentRootsByLocale();
+        $contentRoot = $this->normalizePath((string) ($contentRoots[$locale] ?? ''));
+        $directory = $this->normalizePath(dirname($path));
+        if ($directory === '.' || $directory === '/') {
+            $directory = '';
+        }
 
         foreach (array_keys($this->repository->getLocales()) as $locale) {
             if ($translationKey === '') {
@@ -2608,19 +3038,914 @@ final class AdminWorkspace
         }
 
         return array(
-            'path' => (string) ($document['relativePath'] ?? ''),
+            'path' => $path,
             'title' => (string) ($document['title'] ?? 'Dokument'),
             'slug' => (string) ($document['slug'] ?? ''),
-            'locale' => (string) ($document['locale'] ?? ''),
+            'locale' => $locale,
             'translationKey' => $translationKey,
-            'typeId' => (string) ($document['entryTypeId'] ?? ''),
+            'typeId' => $typeId,
+            'typeLabel' => (string) ($type['label'] ?? ($typeId !== '' ? $this->humanizeName($typeId) : 'Document')),
             'isStandalone' => !empty($document['isStandalone']),
             'isOverview' => !empty($document['isOverview']),
             'excerpt' => (string) ($document['excerpt'] ?? ''),
             'pageUrl' => $this->repository->pageUrlForDocument($document),
             'variants' => $variantSummary,
             'missingLocales' => $missingLocales,
+            'updatedAt' => !empty($document['mtime']) ? date(DATE_ATOM, (int) $document['mtime']) : '',
+            'root' => $contentRoot !== '' ? $contentRoot : ($this->pathIsWithin($path, 'pages') ? 'pages' : $directory),
+            'directory' => $directory,
+            'tags' => $this->normalizeStringList($document['tags'] ?? array()),
+            'typedFields' => is_array($document['typedFields'] ?? null) ? $document['typedFields'] : array(),
         );
+    }
+
+    /**
+     * Builds the initial create-flow configuration payload.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildCreateConfigPayload(): array
+    {
+        $types = array();
+        foreach ($this->schemaRegistry->getTypes() as $type) {
+            if (!is_array($type)) {
+                continue;
+            }
+
+            $typeId = trim((string) ($type['id'] ?? ''));
+            if ($typeId === '') {
+                continue;
+            }
+
+            $types[] = array(
+                'id' => $typeId,
+                'label' => trim((string) ($type['label'] ?? $this->humanizeName($typeId))),
+                'description' => trim((string) ($type['description'] ?? '')),
+                'starterAvailable' => is_file($this->fullPath('cms/type-starters/' . $typeId . '.md')),
+                'fields' => array_values(array_map(function (array $field): array {
+                    return array(
+                        'id' => (string) ($field['id'] ?? ''),
+                        'label' => (string) ($field['label'] ?? ($field['id'] ?? '')),
+                        'type' => (string) ($field['type'] ?? 'text'),
+                    );
+                }, is_array($type['fields'] ?? null) ? $type['fields'] : array())),
+            );
+        }
+
+        return array(
+            'defaultLocale' => $this->repository->getDefaultLocale(),
+            'locales' => $this->buildLocalePayload(),
+            'types' => $types,
+        );
+    }
+
+    /**
+     * Builds a filtered catalog payload for the Library workspace.
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    private function buildCatalogPayload(array $filters): array
+    {
+        $normalizedFilters = array(
+            'query' => trim((string) ($filters['query'] ?? '')),
+            'locale' => $this->normalizeLocaleKey((string) ($filters['locale'] ?? '')),
+            'type' => trim((string) ($filters['type'] ?? '')),
+            'root' => $this->normalizePath((string) ($filters['root'] ?? '')),
+            'tag' => trim((string) ($filters['tag'] ?? '')),
+            'missingLocale' => $this->normalizeLocaleKey((string) ($filters['missingLocale'] ?? '')),
+            'standalone' => trim((string) ($filters['standalone'] ?? '')),
+            'overview' => trim((string) ($filters['overview'] ?? '')),
+            'schemaField' => trim((string) ($filters['schemaField'] ?? '')),
+            'schemaValue' => trim((string) ($filters['schemaValue'] ?? '')),
+        );
+
+        $entries = array_values(array_map(function (array $document): array {
+            return $this->buildDocumentListItem($document);
+        }, $this->sortDocumentsForAdmin($this->repository->getDocuments())));
+        $filteredEntries = array_values(array_filter($entries, function (array $entry) use ($normalizedFilters): bool {
+            return $this->catalogEntryMatchesFilters($entry, $normalizedFilters);
+        }));
+
+        return array(
+            'filters' => $normalizedFilters,
+            'entries' => $filteredEntries,
+            'totalCount' => count($entries),
+            'filteredCount' => count($filteredEntries),
+            'columns' => $this->buildCatalogColumns($normalizedFilters, $filteredEntries),
+            'facets' => $this->buildCatalogFacets($entries, $normalizedFilters),
+            'bulkFields' => $this->buildCatalogBulkFields($filteredEntries),
+        );
+    }
+
+    /**
+     * Determines whether a catalog entry matches the active filters.
+     *
+     * @param array<string, mixed> $filters
+     */
+    private function catalogEntryMatchesFilters(array $entry, array $filters): bool
+    {
+        $query = $this->lowercase((string) ($filters['query'] ?? ''));
+        if ($query !== '') {
+            $haystack = $this->lowercase(implode(' ', array_filter(array(
+                (string) ($entry['title'] ?? ''),
+                (string) ($entry['path'] ?? ''),
+                (string) ($entry['slug'] ?? ''),
+                (string) ($entry['translationKey'] ?? ''),
+                (string) ($entry['typeLabel'] ?? ''),
+                implode(' ', $this->normalizeStringList($entry['tags'] ?? array())),
+            ))));
+            if (strpos($haystack, $query) === false) {
+                return false;
+            }
+        }
+
+        if ((string) ($filters['locale'] ?? '') !== '' && (string) ($entry['locale'] ?? '') !== (string) ($filters['locale'] ?? '')) {
+            return false;
+        }
+
+        if ((string) ($filters['type'] ?? '') !== '' && (string) ($entry['typeId'] ?? '') !== (string) ($filters['type'] ?? '')) {
+            return false;
+        }
+
+        if ((string) ($filters['root'] ?? '') !== '' && (string) ($entry['root'] ?? '') !== (string) ($filters['root'] ?? '')) {
+            return false;
+        }
+
+        if ((string) ($filters['tag'] ?? '') !== '' && !in_array((string) ($filters['tag'] ?? ''), $this->normalizeStringList($entry['tags'] ?? array()), true)) {
+            return false;
+        }
+
+        if ((string) ($filters['missingLocale'] ?? '') !== '' && !in_array((string) ($filters['missingLocale'] ?? ''), (array) ($entry['missingLocales'] ?? array()), true)) {
+            return false;
+        }
+
+        if ((string) ($filters['standalone'] ?? '') !== '') {
+            $expected = in_array(strtolower((string) $filters['standalone']), array('1', 'true', 'yes', 'ja'), true);
+            if (!empty($entry['isStandalone']) !== $expected) {
+                return false;
+            }
+        }
+
+        if ((string) ($filters['overview'] ?? '') !== '') {
+            $expected = in_array(strtolower((string) $filters['overview']), array('1', 'true', 'yes', 'ja'), true);
+            if (!empty($entry['isOverview']) !== $expected) {
+                return false;
+            }
+        }
+
+        $schemaField = trim((string) ($filters['schemaField'] ?? ''));
+        if ($schemaField !== '') {
+            $rawValue = $entry['typedFields'][$schemaField] ?? null;
+            if (is_array($rawValue)) {
+                $normalizedValue = implode(', ', $this->normalizeStringList($rawValue));
+            } elseif (is_bool($rawValue)) {
+                $normalizedValue = $rawValue ? 'true' : 'false';
+            } else {
+                $normalizedValue = trim((string) $rawValue);
+            }
+
+            $schemaValue = $this->lowercase(trim((string) ($filters['schemaValue'] ?? '')));
+            if ($schemaValue !== '' && strpos($this->lowercase($normalizedValue), $schemaValue) === false) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Builds the visible Library table columns.
+     *
+     * @param array<string, mixed> $filters
+     * @param array<int, array<string, mixed>> $entries
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildCatalogColumns(array $filters, array $entries): array
+    {
+        $columns = array(
+            array('id' => 'title', 'label' => 'Title', 'kind' => 'fixed'),
+            array('id' => 'typeLabel', 'label' => 'Type', 'kind' => 'fixed'),
+            array('id' => 'locale', 'label' => 'Locale', 'kind' => 'fixed'),
+            array('id' => 'path', 'label' => 'Path', 'kind' => 'fixed'),
+            array('id' => 'translationKey', 'label' => 'translation_key', 'kind' => 'fixed'),
+            array('id' => 'updatedAt', 'label' => 'Updated', 'kind' => 'fixed'),
+        );
+
+        $activeTypeId = trim((string) ($filters['type'] ?? ''));
+        if ($activeTypeId === '' && $entries !== array()) {
+            $typeIds = array_values(array_unique(array_filter(array_map(function (array $entry): string {
+                return trim((string) ($entry['typeId'] ?? ''));
+            }, $entries))));
+            if (count($typeIds) === 1) {
+                $activeTypeId = (string) $typeIds[0];
+            }
+        }
+
+        if ($activeTypeId !== '') {
+            $type = $this->schemaRegistry->getType($activeTypeId);
+            foreach (array_slice(is_array($type['fields'] ?? null) ? $type['fields'] : array(), 0, 4) as $field) {
+                if (!is_array($field)) {
+                    continue;
+                }
+
+                $fieldId = trim((string) ($field['id'] ?? ''));
+                if ($fieldId === '') {
+                    continue;
+                }
+
+                $columns[] = array(
+                    'id' => 'typedFields.' . $fieldId,
+                    'fieldId' => $fieldId,
+                    'label' => trim((string) ($field['label'] ?? $fieldId)),
+                    'kind' => 'schema',
+                    'type' => (string) ($field['type'] ?? 'text'),
+                );
+            }
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Builds facet metadata for the Library workspace.
+     *
+     * @param array<int, array<string, mixed>> $entries
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    private function buildCatalogFacets(array $entries, array $filters): array
+    {
+        $localeLabels = array();
+        foreach ($this->buildLocalePayload() as $locale) {
+            $localeLabels[(string) ($locale['locale'] ?? '')] = (string) ($locale['label'] ?? '');
+        }
+
+        $typeLabels = array();
+        foreach ($this->schemaRegistry->getTypes() as $type) {
+            if (!is_array($type)) {
+                continue;
+            }
+            $typeId = trim((string) ($type['id'] ?? ''));
+            if ($typeId !== '') {
+                $typeLabels[$typeId] = trim((string) ($type['label'] ?? $typeId));
+            }
+        }
+
+        $locales = $this->buildFacetOptions($entries, 'locale', $localeLabels);
+        $types = $this->buildFacetOptions($entries, 'typeId', $typeLabels);
+        $roots = $this->buildFacetOptions($entries, 'root');
+        $tags = $this->buildFacetOptionsFromLists($entries, 'tags');
+        $missingLocales = $this->buildFacetOptionsFromLists($entries, 'missingLocales');
+        $schemaFields = array();
+
+        $activeTypeId = trim((string) ($filters['type'] ?? ''));
+        if ($activeTypeId !== '') {
+            $type = $this->schemaRegistry->getType($activeTypeId);
+            foreach ((array) ($type['fields'] ?? array()) as $field) {
+                if (!is_array($field)) {
+                    continue;
+                }
+
+                $fieldId = trim((string) ($field['id'] ?? ''));
+                if ($fieldId === '') {
+                    continue;
+                }
+
+                $schemaFields[] = array(
+                    'value' => $fieldId,
+                    'label' => trim((string) ($field['label'] ?? $fieldId)),
+                    'type' => (string) ($field['type'] ?? 'text'),
+                );
+            }
+        }
+
+        return array(
+            'locales' => $locales,
+            'types' => $types,
+            'roots' => $roots,
+            'tags' => $tags,
+            'missingLocales' => $missingLocales,
+            'schemaFields' => $schemaFields,
+        );
+    }
+
+    /**
+     * Builds generic facet options for scalar entry keys.
+     *
+     * @param array<int, array<string, mixed>> $entries
+     * @param array<string, string> $labels
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildFacetOptions(array $entries, string $key, array $labels = array()): array
+    {
+        $counts = array();
+        foreach ($entries as $entry) {
+            $value = trim((string) ($entry[$key] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+
+            if (!isset($counts[$value])) {
+                $counts[$value] = 0;
+            }
+            $counts[$value]++;
+        }
+
+        $options = array();
+        foreach ($counts as $value => $count) {
+            $options[] = array(
+                'value' => $value,
+                'label' => $labels[$value] ?? $value,
+                'count' => $count,
+            );
+        }
+
+        usort($options, static function (array $left, array $right): int {
+            return strnatcasecmp((string) ($left['label'] ?? ''), (string) ($right['label'] ?? ''));
+        });
+
+        return $options;
+    }
+
+    /**
+     * Builds facet options for list-valued entry keys.
+     *
+     * @param array<int, array<string, mixed>> $entries
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildFacetOptionsFromLists(array $entries, string $key): array
+    {
+        $counts = array();
+        foreach ($entries as $entry) {
+            foreach ($this->normalizeStringList($entry[$key] ?? array()) as $value) {
+                if ($value === '') {
+                    continue;
+                }
+                if (!isset($counts[$value])) {
+                    $counts[$value] = 0;
+                }
+                $counts[$value]++;
+            }
+        }
+
+        $options = array();
+        foreach ($counts as $value => $count) {
+            $options[] = array(
+                'value' => $value,
+                'label' => $value,
+                'count' => $count,
+            );
+        }
+
+        usort($options, static function (array $left, array $right): int {
+            return strnatcasecmp((string) ($left['label'] ?? ''), (string) ($right['label'] ?? ''));
+        });
+
+        return $options;
+    }
+
+    /**
+     * Builds the bulk-editable field catalog for the current result set.
+     *
+     * @param array<int, array<string, mixed>> $entries
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildCatalogBulkFields(array $entries): array
+    {
+        $fields = array(
+            'excerpt' => array('id' => 'excerpt', 'label' => 'Excerpt', 'type' => 'text', 'metadata' => true),
+            'description' => array('id' => 'description', 'label' => 'Description', 'type' => 'text', 'metadata' => true),
+            'tags' => array('id' => 'tags', 'label' => 'Tags', 'type' => 'tags', 'metadata' => true),
+        );
+
+        foreach ($entries as $entry) {
+            $document = $this->resolveDocumentByPath((string) ($entry['path'] ?? ''));
+            if ($document === null) {
+                continue;
+            }
+
+            $typeId = trim((string) ($document['entryTypeId'] ?? ''));
+            $type = $typeId !== '' ? $this->schemaRegistry->getType($typeId) : null;
+            foreach ((array) ($type['fields'] ?? array()) as $field) {
+                if (!is_array($field)) {
+                    continue;
+                }
+
+                $fieldId = trim((string) ($field['id'] ?? ''));
+                $fieldType = trim((string) ($field['type'] ?? 'text'));
+                if ($fieldId === '' || !$this->isBulkEditableFieldType($fieldType)) {
+                    continue;
+                }
+
+                if (!isset($fields[$fieldId])) {
+                    $fields[$fieldId] = array(
+                        'id' => $fieldId,
+                        'label' => trim((string) ($field['label'] ?? $fieldId)),
+                        'type' => $fieldType,
+                        'metadata' => false,
+                    );
+                }
+            }
+        }
+
+        return array_values($fields);
+    }
+
+    /**
+     * Determines whether a field type can be edited in bulk.
+     */
+    private function isBulkEditableFieldType(string $fieldType): bool
+    {
+        return in_array($fieldType, array('text', 'number', 'boolean', 'date', 'select', 'multiselect', 'tags', 'reference', 'reference-list'), true);
+    }
+
+    /**
+     * Resolves a bulk-edit field definition for a document.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function resolveBulkFieldDefinition(array $document, string $fieldId): ?array
+    {
+        $fieldId = trim($fieldId);
+        if ($fieldId === '') {
+            return null;
+        }
+
+        $metadataFields = array(
+            'excerpt' => array('id' => 'excerpt', 'label' => 'Excerpt', 'type' => 'text', 'metadata' => true),
+            'description' => array('id' => 'description', 'label' => 'Description', 'type' => 'text', 'metadata' => true),
+            'tags' => array('id' => 'tags', 'label' => 'Tags', 'type' => 'tags', 'metadata' => true),
+        );
+        if (isset($metadataFields[$fieldId])) {
+            return $metadataFields[$fieldId];
+        }
+
+        $typeId = trim((string) ($document['entryTypeId'] ?? ''));
+        $type = $typeId !== '' ? $this->schemaRegistry->getType($typeId) : null;
+        foreach ((array) ($type['fields'] ?? array()) as $field) {
+            if (!is_array($field) || (string) ($field['id'] ?? '') !== $fieldId) {
+                continue;
+            }
+
+            $fieldType = trim((string) ($field['type'] ?? 'text'));
+            if (!$this->isBulkEditableFieldType($fieldType)) {
+                return null;
+            }
+
+            return array(
+                'id' => $fieldId,
+                'label' => trim((string) ($field['label'] ?? $fieldId)),
+                'type' => $fieldType,
+                'metadata' => false,
+            );
+        }
+
+        return null;
+    }
+
+    /**
+     * Builds a lightweight payload for a newly created document.
+     *
+     * @param array<string, mixed> $normalized
+     * @return array<string, mixed>
+     */
+    private function buildCreatedDocumentPayload(array $normalized): array
+    {
+        $previewDocument = $this->buildVirtualDocument($normalized, null);
+
+        return array(
+            'path' => (string) ($normalized['path'] ?? ''),
+            'title' => (string) ($previewDocument['title'] ?? ($normalized['metadata']['title'] ?? '')),
+            'locale' => (string) ($previewDocument['locale'] ?? ''),
+            'slug' => (string) ($previewDocument['slug'] ?? ''),
+            'translationKey' => (string) ($previewDocument['translationKey'] ?? ''),
+            'typeId' => (string) ($previewDocument['entryTypeId'] ?? ''),
+            'pageUrl' => (string) ($previewDocument['pageUrl'] ?? ''),
+        );
+    }
+
+    /**
+     * Loads an optional type starter body and injects the current title placeholder.
+     */
+    private function loadTypeStarterBody(string $typeId, string $title): string
+    {
+        $typeId = trim($typeId);
+        $title = trim($title);
+        if ($typeId !== '') {
+            $starterPath = $this->fullPath('cms/type-starters/' . $typeId . '.md');
+            if (is_file($starterPath)) {
+                $content = @file_get_contents($starterPath);
+                if (is_string($content)) {
+                    return str_replace(array('{{title}}', '{{ title }}'), $title, $content);
+                }
+            }
+        }
+
+        return $title !== '' ? '# ' . $title . "\n\n" : '';
+    }
+
+    /**
+     * Builds a filesystem-safe slug fragment from free text.
+     */
+    private function slugifyPathSegment(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (function_exists('iconv')) {
+            $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+            if (is_string($converted) && $converted !== '') {
+                $value = $converted;
+            }
+        }
+
+        $value = strtolower($value);
+        $value = preg_replace('/[^a-z0-9]+/i', '-', $value) ?? '';
+        $value = trim($value, '-');
+        return $value;
+    }
+
+    /**
+     * Builds a lightweight compare payload for snapshots and local revisions.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildDocumentComparePayload(string $path, string $leftContent, string $rightContent, string $leftLabel): array
+    {
+        return array(
+            'path' => $this->normalizePath($path),
+            'hasChanges' => $leftContent !== $rightContent,
+            'left' => array(
+                'label' => $leftLabel !== '' ? $leftLabel : 'Snapshot',
+                'content' => str_replace(array("\r\n", "\r"), "\n", $leftContent),
+                'bytes' => strlen($leftContent),
+                'lines' => $this->countTextLines($leftContent),
+            ),
+            'right' => array(
+                'label' => 'Current',
+                'content' => str_replace(array("\r\n", "\r"), "\n", $rightContent),
+                'bytes' => strlen($rightContent),
+                'lines' => $this->countTextLines($rightContent),
+            ),
+        );
+    }
+
+    /**
+     * Counts text lines for compare payloads.
+     */
+    private function countTextLines(string $content): int
+    {
+        if ($content === '') {
+            return 0;
+        }
+
+        return count(preg_split('/\r?\n/', $content) ?: array());
+    }
+
+    /**
+     * Determines whether a relative path points to a map manifest sidecar.
+     */
+    private function isMapManifestPath(string $relativePath): bool
+    {
+        $relativePath = strtolower($this->normalizePath($relativePath));
+        return $relativePath !== '' && (substr($relativePath, -9) === '.map.yaml' || substr($relativePath, -8) === '.map.yml');
+    }
+
+    /**
+     * Builds the sidecar manifest path for a managed map asset.
+     */
+    private function mapManifestPathForAsset(string $assetPath): string
+    {
+        return $this->normalizePath($assetPath) . '.map.yaml';
+    }
+
+    /**
+     * Determines whether an asset can carry map pins.
+     */
+    private function assetSupportsMapPins(string $assetPath): bool
+    {
+        $assetPath = $this->normalizePath($assetPath);
+        if ($assetPath === '' || $this->isMapManifestPath($assetPath) || !$this->isManagedMediaFilePath($assetPath)) {
+            return false;
+        }
+
+        return $this->detectMediaType($assetPath) === 'image';
+    }
+
+    /**
+     * Reads the normalized map manifest for an asset.
+     *
+     * @return array<string, mixed>
+     */
+    private function readMapManifest(string $assetPath): array
+    {
+        $manifestPath = $this->fullPath($this->mapManifestPathForAsset($assetPath));
+        if (!is_file($manifestPath)) {
+            return array(
+                'title' => '',
+                'description' => '',
+                'layers' => array(),
+                'pins' => array(),
+            );
+        }
+
+        $raw = @file_get_contents($manifestPath);
+        if (!is_string($raw) || trim($raw) === '') {
+            return array(
+                'title' => '',
+                'description' => '',
+                'layers' => array(),
+                'pins' => array(),
+            );
+        }
+
+        $parsed = (new SimpleYamlParser())->parse($raw);
+        return $this->normalizeMapManifestPayload(is_array($parsed) ? $parsed : array());
+    }
+
+    /**
+     * Builds the API payload for an asset map manifest.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildMapManifestPayload(string $assetPath): array
+    {
+        $assetPath = $this->normalizePath($assetPath);
+        $manifestPath = $this->mapManifestPathForAsset($assetPath);
+        $manifest = $this->readMapManifest($assetPath);
+
+        return array(
+            'path' => $assetPath,
+            'manifestPath' => $manifestPath,
+            'exists' => is_file($this->fullPath($manifestPath)),
+            'asset' => $this->buildAssetPayload(array(
+                'relativePath' => $assetPath,
+                'url' => $this->repository->assetUrl($assetPath),
+                'mediaType' => $this->detectMediaType($assetPath),
+                'locale' => $this->detectLocaleFromPath($assetPath),
+                'isIcon' => false,
+            ), ''),
+            'title' => (string) ($manifest['title'] ?? ''),
+            'description' => (string) ($manifest['description'] ?? ''),
+            'layers' => array_values((array) ($manifest['layers'] ?? array())),
+            'pins' => array_values((array) ($manifest['pins'] ?? array())),
+        );
+    }
+
+    /**
+     * Builds a compact manifest summary for asset cards.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildMapManifestSummary(string $assetPath): array
+    {
+        if (!$this->assetSupportsMapPins($assetPath)) {
+            return array(
+                'enabled' => false,
+                'exists' => false,
+                'pinCount' => 0,
+                'layerCount' => 0,
+            );
+        }
+
+        $manifest = $this->readMapManifest($assetPath);
+        $manifestPath = $this->mapManifestPathForAsset($assetPath);
+
+        return array(
+            'enabled' => true,
+            'exists' => is_file($this->fullPath($manifestPath)),
+            'pinCount' => count((array) ($manifest['pins'] ?? array())),
+            'layerCount' => count((array) ($manifest['layers'] ?? array())),
+            'manifestPath' => $manifestPath,
+        );
+    }
+
+    /**
+     * Normalizes posted map manifest data.
+     *
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeMapManifestPayload(array $payload): array
+    {
+        $layers = array();
+        foreach ((array) ($payload['layers'] ?? array()) as $layer) {
+            $normalizedLayer = $this->normalizeMapLayerInput($layer);
+            if ($normalizedLayer === null) {
+                continue;
+            }
+
+            $layers[(string) $normalizedLayer['id']] = $normalizedLayer;
+        }
+
+        $pins = array();
+        foreach ((array) ($payload['pins'] ?? array()) as $pin) {
+            $normalizedPin = $this->normalizeMapPinInput($pin, count($pins) + 1);
+            if ($normalizedPin === null) {
+                continue;
+            }
+
+            $layerId = (string) ($normalizedPin['layer'] ?? 'default');
+            if (!isset($layers[$layerId])) {
+                $layers[$layerId] = array(
+                    'id' => $layerId,
+                    'label' => $this->humanizeName($layerId),
+                    'visible' => true,
+                    'color' => '',
+                );
+            }
+
+            $pins[] = $normalizedPin;
+        }
+
+        if ($layers === array()) {
+            $layers['default'] = array(
+                'id' => 'default',
+                'label' => 'Default',
+                'visible' => true,
+                'color' => '',
+            );
+        }
+
+        return array(
+            'title' => trim((string) ($payload['title'] ?? '')),
+            'description' => trim((string) ($payload['description'] ?? '')),
+            'layers' => array_values($layers),
+            'pins' => $pins,
+        );
+    }
+
+    /**
+     * Normalizes a single map layer descriptor.
+     *
+     * @param mixed $layer
+     * @return array<string, mixed>|null
+     */
+    private function normalizeMapLayerInput($layer): ?array
+    {
+        if (is_scalar($layer)) {
+            $layerId = trim((string) $layer);
+            if ($layerId === '') {
+                return null;
+            }
+
+            return array(
+                'id' => $layerId,
+                'label' => $this->humanizeName($layerId),
+                'visible' => true,
+                'color' => '',
+            );
+        }
+
+        if (!is_array($layer)) {
+            return null;
+        }
+
+        $layerId = trim((string) ($layer['id'] ?? $layer['key'] ?? $layer['name'] ?? ''));
+        if ($layerId === '') {
+            return null;
+        }
+
+        return array(
+            'id' => $layerId,
+            'label' => trim((string) ($layer['label'] ?? $this->humanizeName($layerId))),
+            'visible' => !array_key_exists('visible', $layer) || !empty($layer['visible']),
+            'color' => trim((string) ($layer['color'] ?? '')),
+        );
+    }
+
+    /**
+     * Normalizes a single map pin descriptor.
+     *
+     * @param mixed $pin
+     * @return array<string, mixed>|null
+     */
+    private function normalizeMapPinInput($pin, int $index): ?array
+    {
+        if (!is_array($pin)) {
+            return null;
+        }
+
+        $label = trim((string) ($pin['label'] ?? $pin['id'] ?? ''));
+        $x = $this->normalizeCoordinate($pin['x'] ?? null);
+        $y = $this->normalizeCoordinate($pin['y'] ?? null);
+        if ($x === null || $y === null) {
+            return null;
+        }
+
+        return array(
+            'id' => trim((string) ($pin['id'] ?? '')) !== '' ? trim((string) $pin['id']) : 'pin-' . $index,
+            'label' => $label !== '' ? $label : ('Pin ' . $index),
+            'description' => trim((string) ($pin['description'] ?? '')),
+            'layer' => trim((string) ($pin['layer'] ?? '')) !== '' ? trim((string) $pin['layer']) : 'default',
+            'x' => $x,
+            'y' => $y,
+            'icon' => trim((string) ($pin['icon'] ?? '')),
+            'target' => trim((string) ($pin['target'] ?? $pin['page'] ?? $pin['url'] ?? '')),
+            'targetType' => trim((string) ($pin['targetType'] ?? '')),
+        );
+    }
+
+    /**
+     * Normalizes map coordinates into the 0..1 range.
+     */
+    private function normalizeCoordinate($value): ?float
+    {
+        if (!is_scalar($value) || trim((string) $value) === '' || !is_numeric((string) $value)) {
+            return null;
+        }
+
+        $numeric = (float) $value;
+        if ($numeric < 0) {
+            $numeric = 0.0;
+        }
+        if ($numeric > 1) {
+            $numeric = 1.0;
+        }
+
+        return round($numeric, 6);
+    }
+
+    /**
+     * Writes a normalized map manifest to its sidecar YAML file.
+     *
+     * @param array<string, mixed> $manifest
+     */
+    private function writeMapManifest(string $assetPath, array $manifest): void
+    {
+        $manifestPath = $this->mapManifestPathForAsset($assetPath);
+        $this->ensureDirectory(dirname($this->fullPath($manifestPath)));
+        file_put_contents($this->fullPath($manifestPath), $this->serializeMapManifest($manifest));
+        clearstatcache(true, $this->fullPath($manifestPath));
+    }
+
+    /**
+     * Serializes a normalized map manifest into the local YAML subset.
+     */
+    private function serializeMapManifest(array $manifest): string
+    {
+        $lines = array(
+            'title: ' . $this->serializeYamlScalar((string) ($manifest['title'] ?? '')),
+            'description: ' . $this->serializeYamlScalar((string) ($manifest['description'] ?? '')),
+            'layers:',
+        );
+
+        foreach ((array) ($manifest['layers'] ?? array()) as $layer) {
+            if (!is_array($layer)) {
+                continue;
+            }
+
+            $lines[] = '  - id: ' . $this->serializeYamlScalar((string) ($layer['id'] ?? ''));
+            $lines[] = '    label: ' . $this->serializeYamlScalar((string) ($layer['label'] ?? ''));
+            $lines[] = '    visible: ' . (!empty($layer['visible']) ? 'true' : 'false');
+            $lines[] = '    color: ' . $this->serializeYamlScalar((string) ($layer['color'] ?? ''));
+        }
+
+        $lines[] = 'pins:';
+        foreach ((array) ($manifest['pins'] ?? array()) as $pin) {
+            if (!is_array($pin)) {
+                continue;
+            }
+
+            $lines[] = '  - id: ' . $this->serializeYamlScalar((string) ($pin['id'] ?? ''));
+            $lines[] = '    label: ' . $this->serializeYamlScalar((string) ($pin['label'] ?? ''));
+            $lines[] = '    description: ' . $this->serializeYamlScalar((string) ($pin['description'] ?? ''));
+            $lines[] = '    layer: ' . $this->serializeYamlScalar((string) ($pin['layer'] ?? 'default'));
+            $lines[] = '    x: ' . rtrim(rtrim(sprintf('%.6F', (float) ($pin['x'] ?? 0)), '0'), '.');
+            $lines[] = '    y: ' . rtrim(rtrim(sprintf('%.6F', (float) ($pin['y'] ?? 0)), '0'), '.');
+            $lines[] = '    icon: ' . $this->serializeYamlScalar((string) ($pin['icon'] ?? ''));
+            $lines[] = '    target: ' . $this->serializeYamlScalar((string) ($pin['target'] ?? ''));
+            $lines[] = '    targetType: ' . $this->serializeYamlScalar((string) ($pin['targetType'] ?? ''));
+        }
+
+        return implode("\n", $lines) . "\n";
+    }
+
+    /**
+     * Serializes a YAML scalar for the constrained map manifest subset.
+     */
+    private function serializeYamlScalar(string $value): string
+    {
+        if ($value === '') {
+            return '""';
+        }
+
+        $escaped = str_replace(array('\\', '"'), array('\\\\', '\\"'), $value);
+        return '"' . $escaped . '"';
+    }
+
+    /**
+     * Deletes an asset map manifest sidecar if present.
+     */
+    private function deleteMapManifest(string $assetPath): void
+    {
+        $manifestPath = $this->fullPath($this->mapManifestPathForAsset($assetPath));
+        if (is_file($manifestPath)) {
+            @unlink($manifestPath);
+        }
     }
 
     /**
@@ -3294,7 +4619,7 @@ final class AdminWorkspace
             'documentRelations' => $documentRelations,
             'contentHtml' => $contentHtml,
             'pageLead' => (string) ($previewDocument['excerpt'] ?? ''),
-            'siteName' => trim((string) (($this->siteConfig['site']['name'] ?? 'WorldMesh CMS'))),
+            'siteName' => trim((string) (($this->siteConfig['site']['name'] ?? 'LoreRoot'))),
             'uiText' => array(),
         ));
         $articleHtml = $this->typeTemplateRenderer->render(
@@ -3310,7 +4635,7 @@ final class AdminWorkspace
                 'documentRelations' => $documentRelations,
                 'contentHtml' => $contentHtml,
                 'pageLead' => (string) ($previewDocument['excerpt'] ?? ''),
-                'siteName' => trim((string) (($this->siteConfig['site']['name'] ?? 'WorldMesh CMS'))),
+                'siteName' => trim((string) (($this->siteConfig['site']['name'] ?? 'LoreRoot'))),
                 'uiText' => array(),
             )
         );
@@ -3337,9 +4662,11 @@ final class AdminWorkspace
         $mermaidConfigJson = json_encode($this->mermaidClientConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $worldorbitConfigJson = json_encode($this->worldorbitClientConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $cytoscapeConfigJson = json_encode($this->cytoscapeClientConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $mapConfigJson = json_encode($this->mapClientConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $mermaidLoaderUrl = $this->repository->assetUrl('assets/mermaid.js');
         $worldorbitLoaderUrl = $this->repository->assetUrl('assets/worldorbit.js');
         $cytoscapeLoaderUrl = $this->repository->assetUrl('assets/cytoscape.js');
+        $mapLoaderUrl = $this->repository->assetUrl('assets/map-viewer.js');
         $pageTitle = $this->escapeHtml((string) ($previewDocument['title'] ?? 'Preview'));
 
         return '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">'
@@ -3349,10 +4676,11 @@ final class AdminWorkspace
             . '<style>:root{color-scheme:light;}body{margin:0;padding:1.5rem;background:var(--bg,#f4f1ea);color:var(--text,#1e1b16);}main{max-width:72rem;margin:0 auto;}article{padding:1.5rem;border-radius:1.25rem;background:var(--panel,#fff);box-shadow:0 1rem 3rem rgba(0,0,0,.08);}</style>'
             . '</head><body>'
             . '<main><article class="prose">' . $articleHtml . '</article></main>'
-            . '<script>window.__CMS_MERMAID=' . ($mermaidConfigJson !== false ? $mermaidConfigJson : '{}') . ';window.__CMS_WORLDORBIT=' . ($worldorbitConfigJson !== false ? $worldorbitConfigJson : '{}') . ';window.__CMS_CYTOSCAPE=' . ($cytoscapeConfigJson !== false ? $cytoscapeConfigJson : '{}') . ';</script>'
+            . '<script>window.__CMS_MERMAID=' . ($mermaidConfigJson !== false ? $mermaidConfigJson : '{}') . ';window.__CMS_WORLDORBIT=' . ($worldorbitConfigJson !== false ? $worldorbitConfigJson : '{}') . ';window.__CMS_CYTOSCAPE=' . ($cytoscapeConfigJson !== false ? $cytoscapeConfigJson : '{}') . ';window.__CMS_MAPS=' . ($mapConfigJson !== false ? $mapConfigJson : '{}') . ';</script>'
             . '<script src="' . $this->escapeAttribute($mermaidLoaderUrl) . '"></script>'
             . '<script src="' . $this->escapeAttribute($worldorbitLoaderUrl) . '"></script>'
             . '<script src="' . $this->escapeAttribute($cytoscapeLoaderUrl) . '"></script>'
+            . '<script src="' . $this->escapeAttribute($mapLoaderUrl) . '"></script>'
             . '</body></html>';
     }
 
@@ -3965,7 +5293,7 @@ final class AdminWorkspace
     private function isManagedMediaFilePath(string $relativePath): bool
     {
         $relativePath = $this->normalizePath($relativePath);
-        if ($relativePath === '' || !$this->isAllowedMediaDirectory($relativePath)) {
+        if ($relativePath === '' || !$this->isAllowedMediaDirectory($relativePath) || $this->isMapManifestPath($relativePath)) {
             return false;
         }
 
@@ -4292,7 +5620,7 @@ final class AdminWorkspace
                 continue;
             }
 
-            if (strtolower((string) $entry->getExtension()) === 'md') {
+            if (strtolower((string) $entry->getExtension()) === 'md' || $this->isMapManifestPath($relativePath)) {
                 continue;
             }
 
@@ -4586,6 +5914,7 @@ final class AdminWorkspace
             'previewUrl' => (string) ($asset['url'] ?? $this->repository->assetUrl($relativePath)),
             'displayName' => pathinfo(basename($relativePath), PATHINFO_FILENAME),
             'snippets' => $this->buildAssetSnippets($asset, $currentPath),
+            'map' => $this->buildMapManifestSummary($relativePath),
         );
     }
 
@@ -4868,6 +6197,18 @@ final class AdminWorkspace
             );
         }
 
+        if (!is_dir($this->fullPath($targetPath)) && $this->assetSupportsMapPins($sourcePath)) {
+            $sourceManifestPath = $this->fullPath($this->mapManifestPathForAsset($sourcePath));
+            $targetManifestPath = $this->fullPath($this->mapManifestPathForAsset($targetPath));
+            if (is_file($sourceManifestPath)) {
+                $this->ensureDirectory(dirname($targetManifestPath));
+                if (!@rename($sourceManifestPath, $targetManifestPath)) {
+                    @copy($sourceManifestPath, $targetManifestPath);
+                    @unlink($sourceManifestPath);
+                }
+            }
+        }
+
         return array(
             'ok' => true,
             'message' => $successMessage,
@@ -4933,6 +6274,10 @@ final class AdminWorkspace
                 'statusCode' => 500,
                 'message' => 'Der Eintrag konnte nicht geloescht werden.',
             );
+        }
+
+        if (!is_dir($this->fullPath($path)) && $this->assetSupportsMapPins($path)) {
+            $this->deleteMapManifest($path);
         }
 
         return array(

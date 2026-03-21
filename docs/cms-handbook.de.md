@@ -1,12 +1,12 @@
 # CMS-Handbuch
 
-Dieses Dokument ist die menschenlesbare Einfuehrung in das WorldMesh Worldbuilder CMS. Es richtet sich an Autorinnen und Autoren, Redakteurinnen und Redakteure, Maintainer und alle, die Inhalte, Strukturen oder Themes im System pflegen.
+Dieses Dokument ist die menschenlesbare Einfuehrung in LoreRoot. Es richtet sich an Autorinnen und Autoren, Redakteurinnen und Redakteure, Maintainer und alle, die Inhalte, Strukturen oder Themes im System pflegen.
 
 Fuer KI-spezifische Regeln gibt es zusaetzlich das hierarchische `AGENTS.md`-System. Dieses Handbuch erklaert dagegen das CMS selbst, die wichtigsten Arbeitsbereiche und die ueblichen Arbeitsablaeufe.
 
 ## 1. Was dieses CMS ist
 
-Das WorldMesh Worldbuilder CMS ist ein dateibasiertes System fuer Wissensarchive, Worldbuilding und strukturierte Inhalte.
+LoreRoot ist: `A file-based Markdown system for worldbuilding and structured lore`.
 
 Wichtige Eigenschaften:
 

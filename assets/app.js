@@ -18,7 +18,7 @@ const themeCookiePath = themeSelect && themeSelect.dataset.themeCookiePath
     : (themeSettings.cookiePath || "/");
 const themeStorageKey = themeSelect && themeSelect.dataset.themeStorageKey
     ? themeSelect.dataset.themeStorageKey
-    : "worldmesh-cms-theme";
+    : "loreroot-cms-theme";
 const themeResolvedCookieKey = themeSettings.resolvedCookieKey || `${themeStorageKey}-resolved`;
 const themeSyncStorageKey = `${themeStorageKey}-server-sync`;
 const systemThemeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;

@@ -388,6 +388,11 @@ final class ContentRepository
                 continue;
             }
 
+            $lowerPath = strtolower($relativePath);
+            if (substr($lowerPath, -9) === '.map.yaml' || substr($lowerPath, -8) === '.map.yml') {
+                continue;
+            }
+
             $assets[] = array(
                 'relativePath' => $relativePath,
                 'url' => $this->assetUrl($relativePath),

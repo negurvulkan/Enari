@@ -68,9 +68,15 @@
         types: Array.isArray(bootstrap.types) ? bootstrap.types : [],
         relations: Array.isArray(bootstrap.relations) ? bootstrap.relations : [],
         locales: Array.isArray(bootstrap.locales) ? bootstrap.locales : [],
+        brand: bootstrap.brand || {},
+        catalog: bootstrap.catalog || { entries: [], filters: {}, facets: {}, columns: [], bulkFields: [] },
+        createConfig: bootstrap.create || {},
+        revisionsConfig: bootstrap.revisions || {},
+        mapsConfig: bootstrap.maps || {},
+        catalogSelection: new Set(),
         editorConfig: bootstrap.editor || {},
         gitConfig: bootstrap.git || {},
-        activeWorkspace: "editor",
+        activeWorkspace: "library",
         mediaPayload: null,
         mediaRequestKey: "",
         mediaView: {
@@ -195,13 +201,14 @@
      */
     const resolveWorkspaceFromHash = () => {
         const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-        return params.get("workspace") || "editor";
+        return params.get("workspace") || "library";
     };
 
     state.activeWorkspace = resolveWorkspaceFromHash();
 
     const documentList = document.querySelector("[data-admin-document-list]");
     const filterInput = document.querySelector("[data-admin-filter]");
+    const newEntryButtons = Array.from(document.querySelectorAll("[data-admin-new-entry]"));
     const openPageButton = document.querySelector("[data-admin-open-page]");
     const cloneButton = document.querySelector("[data-admin-clone]");
     const saveButton = document.querySelector("[data-admin-save]");
@@ -258,9 +265,23 @@
     const insertIconButton = document.querySelector("[data-admin-insert-icon]");
     const insertMermaidButton = document.querySelector("[data-admin-insert-mermaid]");
     const insertWorldOrbitButton = document.querySelector("[data-admin-insert-worldorbit]");
+    const insertMapButton = document.querySelector("[data-admin-insert-map]");
     const insertGraphButton = document.querySelector("[data-admin-insert-graph]");
     const bodyField = document.querySelector("[data-admin-body]");
     const customFrontmatterField = document.querySelector("[data-admin-custom-frontmatter]");
+    const librarySummaryNode = document.querySelector("[data-admin-library-summary]");
+    const libraryQueryInput = document.querySelector("[data-admin-library-query]");
+    const libraryLocaleSelect = document.querySelector("[data-admin-library-locale]");
+    const libraryTypeSelect = document.querySelector("[data-admin-library-type]");
+    const libraryRootSelect = document.querySelector("[data-admin-library-root]");
+    const libraryTagSelect = document.querySelector("[data-admin-library-tag]");
+    const libraryMissingLocaleSelect = document.querySelector("[data-admin-library-missing-locale]");
+    const librarySchemaFieldSelect = document.querySelector("[data-admin-library-schema-field]");
+    const librarySchemaValueInput = document.querySelector("[data-admin-library-schema-value]");
+    const libraryRefreshButton = document.querySelector("[data-admin-library-refresh]");
+    const libraryBulkButton = document.querySelector("[data-admin-library-bulk]");
+    const libraryHeadNode = document.querySelector("[data-admin-library-head]");
+    const libraryBodyNode = document.querySelector("[data-admin-library-body]");
 
     const metadataFields = {
         title: document.querySelector('[data-admin-field="title"]'),
@@ -393,6 +414,7 @@
 
     let editorShell = null;
     let mediaSearchTimer = 0;
+    let librarySearchTimer = 0;
     let activeModalCleanup = null;
 
     /**
@@ -665,6 +687,263 @@
         });
 
         documentList.append(fragment);
+    };
+
+    /**
+     * Formats catalog cell values.
+     */
+    const formatCatalogValue = (value) => {
+        if (Array.isArray(value)) {
+            return value.join(", ");
+        }
+        if (typeof value === "boolean") {
+            return value ? "yes" : "no";
+        }
+        return value == null || value === "" ? "—" : String(value);
+    };
+
+    /**
+     * Fills a facet select with server-provided options.
+     */
+    const populateFacetSelect = (select, options, currentValue, emptyLabel = "Alle") => {
+        if (!select) {
+            return;
+        }
+
+        const previousValue = currentValue != null ? String(currentValue) : String(select.value || "");
+        select.replaceChildren();
+
+        const emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = emptyLabel;
+        select.append(emptyOption);
+
+        (Array.isArray(options) ? options : []).forEach((entry) => {
+            const option = document.createElement("option");
+            option.value = entry.value || "";
+            option.textContent = entry.count != null ? `${entry.label || entry.value} (${entry.count})` : (entry.label || entry.value || "");
+            select.append(option);
+        });
+
+        select.value = previousValue;
+    };
+
+    /**
+     * Reads the active Library filters from the UI.
+     */
+    const collectLibraryFilters = () => ({
+        query: libraryQueryInput?.value?.trim() || "",
+        locale: libraryLocaleSelect?.value || "",
+        type: libraryTypeSelect?.value || "",
+        root: libraryRootSelect?.value || "",
+        tag: libraryTagSelect?.value || "",
+        missingLocale: libraryMissingLocaleSelect?.value || "",
+        schemaField: librarySchemaFieldSelect?.value || "",
+        schemaValue: librarySchemaValueInput?.value?.trim() || "",
+    });
+
+    /**
+     * Applies a catalog payload to local state.
+     */
+    const applyCatalogPayload = (catalog, refreshDocuments = false) => {
+        state.catalog = catalog || { entries: [], filters: {}, facets: {}, columns: [], bulkFields: [] };
+        const visiblePaths = new Set((state.catalog.entries || []).map((entry) => entry.path).filter(Boolean));
+        state.catalogSelection.forEach((path) => {
+            if (!visiblePaths.has(path)) {
+                state.catalogSelection.delete(path);
+            }
+        });
+
+        if (refreshDocuments || (Number(state.catalog.totalCount || 0) === Number(state.catalog.filteredCount || -1))) {
+            state.documents = Array.isArray(state.catalog.entries) ? state.catalog.entries.slice() : state.documents;
+            if (editorShell) {
+                editorShell.setDocuments(state.documents);
+            }
+            renderDocumentList(filterInput.value || "");
+        }
+
+        renderLibrary();
+    };
+
+    /**
+     * Updates Library selection controls.
+     */
+    const updateLibraryBulkState = () => {
+        if (!libraryBulkButton) {
+            return;
+        }
+        libraryBulkButton.disabled = state.catalogSelection.size === 0 || !(state.catalog.bulkFields || []).length;
+        libraryBulkButton.textContent = state.catalogSelection.size > 0
+            ? `Bulk edit (${state.catalogSelection.size})`
+            : "Bulk edit";
+    };
+
+    /**
+     * Renders the Library workspace table and filter facets.
+     */
+    const renderLibrary = () => {
+        const catalog = state.catalog || {};
+        const filters = catalog.filters || {};
+        const facets = catalog.facets || {};
+        const entries = Array.isArray(catalog.entries) ? catalog.entries : [];
+        const columns = Array.isArray(catalog.columns) ? catalog.columns : [];
+
+        if (librarySummaryNode) {
+            librarySummaryNode.textContent = `${catalog.filteredCount || 0} von ${catalog.totalCount || 0} Dokumenten`;
+        }
+
+        if (libraryQueryInput && document.activeElement !== libraryQueryInput) {
+            libraryQueryInput.value = filters.query || "";
+        }
+        populateFacetSelect(libraryLocaleSelect, facets.locales, filters.locale || "", "Alle");
+        populateFacetSelect(libraryTypeSelect, facets.types, filters.type || "", "Alle");
+        populateFacetSelect(libraryRootSelect, facets.roots, filters.root || "", "Alle");
+        populateFacetSelect(libraryTagSelect, facets.tags, filters.tag || "", "Alle");
+        populateFacetSelect(libraryMissingLocaleSelect, facets.missingLocales || [], filters.missingLocale || "", "Alle");
+        populateFacetSelect(librarySchemaFieldSelect, facets.schemaFields, filters.schemaField || "", "Keins");
+        if (librarySchemaValueInput && document.activeElement !== librarySchemaValueInput) {
+            librarySchemaValueInput.value = filters.schemaValue || "";
+        }
+
+        if (libraryHeadNode) {
+            libraryHeadNode.replaceChildren();
+            const row = document.createElement("tr");
+            const selectCell = document.createElement("th");
+            const toggleAll = document.createElement("input");
+            toggleAll.type = "checkbox";
+            toggleAll.checked = entries.length > 0 && entries.every((entry) => state.catalogSelection.has(entry.path));
+            toggleAll.addEventListener("change", () => {
+                if (toggleAll.checked) {
+                    entries.forEach((entry) => state.catalogSelection.add(entry.path));
+                } else {
+                    entries.forEach((entry) => state.catalogSelection.delete(entry.path));
+                }
+                renderLibrary();
+            });
+            selectCell.append(toggleAll);
+            row.append(selectCell);
+
+            columns.forEach((column) => {
+                const th = document.createElement("th");
+                th.textContent = column.label || column.id || "";
+                row.append(th);
+            });
+            libraryHeadNode.append(row);
+        }
+
+        if (libraryBodyNode) {
+            libraryBodyNode.replaceChildren();
+            if (!entries.length) {
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+                cell.colSpan = Math.max(2, columns.length + 1);
+                cell.className = "admin-placeholder-cell";
+                cell.textContent = "Keine passenden Dokumente gefunden.";
+                row.append(cell);
+                libraryBodyNode.append(row);
+            } else {
+                entries.forEach((entry) => {
+                    const row = document.createElement("tr");
+                    row.className = "admin-library-row";
+                    if (state.currentDocument?.path === entry.path) {
+                        row.classList.add("is-active");
+                    }
+
+                    const selectCell = document.createElement("td");
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.checked = state.catalogSelection.has(entry.path);
+                    checkbox.addEventListener("change", () => {
+                        if (checkbox.checked) {
+                            state.catalogSelection.add(entry.path);
+                        } else {
+                            state.catalogSelection.delete(entry.path);
+                        }
+                        updateLibraryBulkState();
+                    });
+                    selectCell.append(checkbox);
+                    row.append(selectCell);
+
+                    columns.forEach((column) => {
+                        const cell = document.createElement("td");
+                        let value = entry[column.id];
+                        if (column.kind === "schema" && column.fieldId) {
+                            value = entry.typedFields?.[column.fieldId];
+                        }
+
+                        if (column.id === "title") {
+                            const stack = document.createElement("div");
+                            stack.className = "admin-library-cell";
+
+                            const button = document.createElement("button");
+                            button.type = "button";
+                            button.className = "admin-button admin-button--ghost admin-button--small";
+                            button.textContent = formatCatalogValue(value);
+                            button.addEventListener("click", () => {
+                                void loadDocument(entry.path);
+                                window.location.hash = "workspace=editor";
+                            });
+                            stack.append(button);
+
+                            const meta = document.createElement("p");
+                            meta.className = "admin-document__meta";
+                            meta.textContent = entry.path || "";
+                            stack.append(meta);
+
+                            const actions = document.createElement("div");
+                            actions.className = "admin-inline-actions";
+
+                            const editButton = document.createElement("button");
+                            editButton.type = "button";
+                            editButton.className = "admin-button admin-button--ghost admin-button--small";
+                            editButton.textContent = "Edit";
+                            editButton.addEventListener("click", () => {
+                                void loadDocument(entry.path);
+                                window.location.hash = "workspace=editor";
+                            });
+                            actions.append(editButton);
+
+                            const historyButton = document.createElement("button");
+                            historyButton.type = "button";
+                            historyButton.className = "admin-button admin-button--ghost admin-button--small";
+                            historyButton.textContent = "Git history";
+                            historyButton.addEventListener("click", guardAsync(async () => {
+                                await openGitHistoryModal(entry.path);
+                            }));
+                            actions.append(historyButton);
+
+                            stack.append(actions);
+                            cell.append(stack);
+                        } else {
+                            cell.textContent = formatCatalogValue(value);
+                        }
+
+                        row.append(cell);
+                    });
+                    libraryBodyNode.append(row);
+                });
+            }
+        }
+
+        updateLibraryBulkState();
+    };
+
+    /**
+     * Loads a filtered catalog from the server.
+     */
+    const loadCatalog = async (filters = collectLibraryFilters()) => {
+        const params = new URLSearchParams();
+        Object.entries(filters || {}).forEach(([key, value]) => {
+            if (value != null && String(value).trim() !== "") {
+                params.set(key, String(value));
+            }
+        });
+        const query = params.toString();
+        const payload = await request(`catalog${query ? `?${query}` : ""}`, {
+            loading: "immediate",
+            loadingLabel: "Library wird geladen...",
+        });
+        applyCatalogPayload(payload.catalog || {}, false);
     };
 
     /**
@@ -959,7 +1238,15 @@
                 renderHistory(payload.history || []);
                 await loadDocument(state.currentDocument.path);
             });
-            actions.append(restoreButton);
+            const compareButton = document.createElement("button");
+            compareButton.type = "button";
+            compareButton.className = "admin-button admin-button--ghost admin-button--small";
+            compareButton.textContent = "Vergleichen";
+            compareButton.addEventListener("click", guardAsync(async () => {
+                await openSnapshotCompareModal(entry.id || "");
+            }));
+
+            actions.append(compareButton, restoreButton);
             item.append(actions);
             list.append(item);
         });
@@ -1142,6 +1429,17 @@
         });
         card.append(meta);
 
+        if (entry.map?.enabled) {
+            const mapMeta = document.createElement("article");
+            mapMeta.className = "admin-status";
+            mapMeta.innerHTML = `
+                <p class="admin-status-list__eyebrow">Map pins</p>
+                <p class="admin-status__title">${entry.map.exists ? `${entry.map.pinCount || 0} Pins in ${entry.map.layerCount || 0} Layern` : "Noch kein Karten-Manifest"}</p>
+                <p class="admin-document__meta">${escapeHtml(entry.map.manifestPath || "Sidecar wird neben dem Bild gespeichert.")}</p>
+            `;
+            card.append(mapMeta);
+        }
+
         const preview = createMediaPreview(entry);
         if (preview) {
             card.append(preview);
@@ -1176,6 +1474,17 @@
                 });
                 actions.append(button);
             });
+
+            if (entry.map?.enabled) {
+                const mapButton = document.createElement("button");
+                mapButton.type = "button";
+                mapButton.className = "admin-button admin-button--ghost admin-button--small";
+                mapButton.textContent = entry.map.exists ? "Map pins bearbeiten" : "Map pins anlegen";
+                mapButton.addEventListener("click", guardAsync(async () => {
+                    await openMapEditorModal(entry.path || "");
+                }));
+                actions.append(mapButton);
+            }
         }
 
         if (entry.path && !entry.isRoot) {
@@ -2303,12 +2612,23 @@
     /**
      * Opens the Git history modal with lightweight rollback actions.
      */
-    const openGitHistoryModal = async () => {
+    const openGitHistoryModal = async (pathFilter = "") => {
         const payload = await request("git/history?limit=15");
         const history = Array.isArray(payload.history) ? payload.history : [];
-        const { body } = createModal("Git History");
+        const normalizedPathFilter = String(pathFilter || "").trim();
+        const filteredHistory = normalizedPathFilter === ""
+            ? history
+            : history
+                .map((commit) => ({
+                    ...commit,
+                    files: Array.isArray(commit.files)
+                        ? commit.files.filter((file) => String(file.path || "") === normalizedPathFilter)
+                        : [],
+                }))
+                .filter((commit) => (commit.files || []).length > 0);
+        const { body } = createModal(normalizedPathFilter ? `Git History: ${normalizedPathFilter}` : "Git History");
 
-        if (!history.length) {
+        if (!filteredHistory.length) {
             body.innerHTML = '<p class="admin-placeholder">Noch keine verwalteten Commits gefunden.</p>';
             return;
         }
@@ -2316,7 +2636,7 @@
         const list = document.createElement("div");
         list.className = "admin-git-queue";
 
-        history.forEach((commit) => {
+        filteredHistory.forEach((commit) => {
             const item = document.createElement("article");
             item.className = "admin-status";
             item.innerHTML = `
@@ -2334,6 +2654,14 @@
                     <span>${escapeHtml(describeGitStatusToken(file.status || ""))}</span>
                     <span>${escapeHtml(file.path || "")}</span>
                 `;
+                const compareButton = document.createElement("button");
+                compareButton.type = "button";
+                compareButton.className = "admin-button admin-button--ghost admin-button--small";
+                compareButton.textContent = "Vergleichen";
+                compareButton.addEventListener("click", guardAsync(async () => {
+                    await openGitHistoryCompareModal(commit.hash || "", file.path || "");
+                }));
+
                 const restoreButton = document.createElement("button");
                 restoreButton.type = "button";
                 restoreButton.className = "admin-button admin-button--ghost admin-button--small";
@@ -2355,7 +2683,7 @@
                         window.location.reload();
                     }
                 }));
-                row.append(restoreButton);
+                row.append(compareButton, restoreButton);
                 files.append(row);
             });
             item.append(files);
@@ -2464,6 +2792,493 @@
         activeModalCleanup = layout?.enhanceModal ? layout.enhanceModal(dialog, closeModal) : null;
 
         return { modal, dialog, body, footer };
+    };
+
+    /**
+     * Opens a side-by-side compare modal for snapshot or Git payloads.
+     */
+    const openCompareModal = (title, compare) => {
+        const { body } = createModal(title);
+        const summary = document.createElement("div");
+        summary.className = "admin-git-meta";
+        [
+            [compare.path || "", compare.left?.label || "left", `${compare.left?.lines || 0} Zeilen · ${compare.left?.bytes || 0} B`],
+            [compare.path || "", compare.right?.label || "right", `${compare.right?.lines || 0} Zeilen · ${compare.right?.bytes || 0} B`],
+        ].forEach(([label, value, meta]) => {
+            const item = document.createElement("article");
+            item.className = "admin-status";
+            item.innerHTML = `
+                <p class="admin-status-list__eyebrow">${escapeHtml(label)}</p>
+                <p class="admin-status__title">${escapeHtml(value)}</p>
+                <p class="admin-document__meta">${escapeHtml(meta)}</p>
+            `;
+            summary.append(item);
+        });
+        body.append(summary);
+
+        const columns = document.createElement("div");
+        columns.className = "admin-compare-grid";
+        [
+            compare.left || { label: "left", content: "" },
+            compare.right || { label: "right", content: "" },
+        ].forEach((side) => {
+            const panel = document.createElement("section");
+            panel.className = "admin-status";
+            const heading = document.createElement("p");
+            heading.className = "admin-status__title";
+            heading.textContent = side.label || "";
+            const code = document.createElement("pre");
+            code.className = "admin-extension-card__code admin-extension-card__code--tall";
+            code.textContent = side.content || "";
+            panel.append(heading, code);
+            columns.append(panel);
+        });
+        body.append(columns);
+
+        if (compare.patch) {
+            const patch = document.createElement("pre");
+            patch.className = "admin-extension-card__code admin-extension-card__code--tall";
+            patch.textContent = compare.patch;
+            body.append(patch);
+        }
+    };
+
+    /**
+     * Opens the snapshot compare modal for the current document.
+     */
+    const openSnapshotCompareModal = async (snapshotId) => {
+        if (!state.currentDocument?.path || !snapshotId) {
+            return;
+        }
+        const params = new URLSearchParams({
+            path: state.currentDocument.path,
+            snapshotId,
+        });
+        const payload = await request(`history/compare?${params.toString()}`);
+        openCompareModal("Snapshot Compare", payload.compare || {});
+    };
+
+    /**
+     * Opens a Git compare modal for a historic file version.
+     */
+    const openGitHistoryCompareModal = async (revision, path) => {
+        if (!revision || !path) {
+            return;
+        }
+        const params = new URLSearchParams({ revision, path });
+        const payload = await request(`git/history/compare?${params.toString()}`);
+        openCompareModal("Git Compare", payload.compare || {});
+    };
+
+    /**
+     * Opens the create-entry flow for LoreRoot documents.
+     */
+    const openCreateEntryModal = async () => {
+        const { body, footer } = createModal("New entry");
+        const grid = document.createElement("div");
+        grid.className = "admin-modal__grid";
+
+        const localeField = document.createElement("label");
+        localeField.className = "admin-field";
+        localeField.innerHTML = '<span>Locale</span>';
+        const localeSelect = document.createElement("select");
+        (state.createConfig?.locales || state.locales || []).forEach((locale) => {
+            const option = document.createElement("option");
+            option.value = locale.locale;
+            option.textContent = locale.label || locale.locale;
+            localeSelect.append(option);
+        });
+        localeSelect.value = state.currentDocument?.locale || state.createConfig?.defaultLocale || state.locales[0]?.locale || "";
+        localeField.append(localeSelect);
+
+        const typeField = document.createElement("label");
+        typeField.className = "admin-field";
+        typeField.innerHTML = '<span>Typ</span>';
+        const typeSelect = document.createElement("select");
+        state.types.forEach((type) => {
+            const option = document.createElement("option");
+            option.value = type.id;
+            option.textContent = type.label || type.id;
+            typeSelect.append(option);
+        });
+        typeField.append(typeSelect);
+
+        const titleField = document.createElement("label");
+        titleField.className = "admin-field";
+        titleField.innerHTML = '<span>Titel</span>';
+        const titleInput = document.createElement("input");
+        titleInput.type = "text";
+        titleField.append(titleInput);
+
+        const slugField = document.createElement("label");
+        slugField.className = "admin-field";
+        slugField.innerHTML = '<span>Slug (optional)</span>';
+        const slugInput = document.createElement("input");
+        slugInput.type = "text";
+        slugField.append(slugInput);
+
+        const directoryField = document.createElement("label");
+        directoryField.className = "admin-field";
+        directoryField.innerHTML = '<span>Zielordner</span>';
+        const directoryInput = document.createElement("input");
+        directoryInput.type = "text";
+        directoryField.append(directoryInput);
+
+        const translationKeyField = document.createElement("label");
+        translationKeyField.className = "admin-field";
+        translationKeyField.innerHTML = '<span>translation_key</span>';
+        const translationKeyInput = document.createElement("input");
+        translationKeyInput.type = "text";
+        translationKeyField.append(translationKeyInput);
+
+        grid.append(localeField, typeField, titleField, slugField, directoryField, translationKeyField);
+        body.append(grid);
+
+        const typedFieldsHost = document.createElement("div");
+        typedFieldsHost.className = "admin-typed-grid";
+        body.append(typedFieldsHost);
+
+        const buildDefaultDirectory = () => {
+            const locale = (state.createConfig?.locales || state.locales || []).find((entry) => entry.locale === localeSelect.value);
+            return locale?.contentRoot || "";
+        };
+
+        const renderTypedCreateFields = () => {
+            typedFieldsHost.replaceChildren();
+            const type = typesById.get(typeSelect.value);
+            if (!type || !Array.isArray(type.fields)) {
+                return;
+            }
+
+            type.fields.forEach((field) => {
+                const wrapper = document.createElement("label");
+                wrapper.className = "admin-field";
+                wrapper.dataset.createFieldId = field.id;
+                wrapper.dataset.createFieldType = field.type;
+                wrapper.innerHTML = `<span>${escapeHtml(field.label || field.id)}</span>`;
+                let control;
+                if (["textarea", "tags", "multiselect", "reference-list"].includes(field.type)) {
+                    control = document.createElement("textarea");
+                    control.rows = field.type === "textarea" ? 4 : 3;
+                } else if (field.type === "select") {
+                    control = document.createElement("select");
+                    const emptyOption = document.createElement("option");
+                    emptyOption.value = "";
+                    emptyOption.textContent = "Auswaehlen";
+                    control.append(emptyOption);
+                    (field.options || []).forEach((optionValue) => {
+                        const option = document.createElement("option");
+                        if (typeof optionValue === "object") {
+                            option.value = optionValue.value || "";
+                            option.textContent = optionValue.label || optionValue.value || "";
+                        } else {
+                            option.value = String(optionValue);
+                            option.textContent = String(optionValue);
+                        }
+                        control.append(option);
+                    });
+                } else if (field.type === "boolean") {
+                    control = document.createElement("input");
+                    control.type = "checkbox";
+                } else {
+                    control = document.createElement("input");
+                    control.type = field.type === "number" ? "number" : "text";
+                }
+
+                if (field.type === "reference" || field.type === "reference-list") {
+                    control.setAttribute("list", "admin-reference-options");
+                }
+                wrapper.append(control);
+                typedFieldsHost.append(wrapper);
+            });
+        };
+
+        directoryInput.value = buildDefaultDirectory();
+        localeSelect.addEventListener("change", () => {
+            directoryInput.value = buildDefaultDirectory();
+        });
+        typeSelect.addEventListener("change", renderTypedCreateFields);
+        renderTypedCreateFields();
+
+        const cancelButton = document.createElement("button");
+        cancelButton.type = "button";
+        cancelButton.className = "admin-button admin-button--ghost";
+        cancelButton.textContent = "Abbrechen";
+        cancelButton.addEventListener("click", closeModal);
+
+        const saveButton = document.createElement("button");
+        saveButton.type = "button";
+        saveButton.className = "admin-button admin-button--primary";
+        saveButton.textContent = "Anlegen";
+        saveButton.addEventListener("click", guardAsync(async () => {
+            const typedFields = {};
+            typedFieldsHost.querySelectorAll("[data-create-field-id]").forEach((wrapper) => {
+                const fieldId = wrapper.dataset.createFieldId;
+                const fieldType = wrapper.dataset.createFieldType || "text";
+                const control = wrapper.querySelector("input, textarea, select");
+                if (!fieldId || !control) {
+                    return;
+                }
+
+                if (control.type === "checkbox") {
+                    typedFields[fieldId] = control.checked;
+                } else if (["tags", "multiselect", "reference-list"].includes(fieldType)) {
+                    typedFields[fieldId] = String(control.value || "").split(/[\n,]+/).map((entry) => entry.trim()).filter(Boolean);
+                } else {
+                    typedFields[fieldId] = control.value;
+                }
+            });
+
+            const response = await request("document/create", {
+                method: "POST",
+                body: {
+                    locale: localeSelect.value,
+                    typeId: typeSelect.value,
+                    title: titleInput.value.trim(),
+                    slug: slugInput.value.trim(),
+                    targetDirectory: directoryInput.value.trim(),
+                    translationKey: translationKeyInput.value.trim(),
+                    typedFields,
+                },
+                loading: "immediate",
+                loadingLabel: "Neuer Eintrag wird angelegt...",
+            });
+
+            applyCatalogPayload(response.catalog || {}, true);
+            closeModal();
+            if (response.document?.path || response.path) {
+                await loadDocument(response.document?.path || response.path);
+            }
+            announce(response.message || "Eintrag angelegt.");
+        }));
+
+        footer.append(cancelButton, saveButton);
+    };
+
+    /**
+     * Opens the bulk-edit modal for the current Library selection.
+     */
+    const openBulkEditModal = async () => {
+        const paths = Array.from(state.catalogSelection);
+        if (!paths.length) {
+            return;
+        }
+
+        const { body, footer } = createModal("Bulk edit");
+        const fieldWrapper = document.createElement("label");
+        fieldWrapper.className = "admin-field";
+        fieldWrapper.innerHTML = "<span>Feld</span>";
+        const fieldSelect = document.createElement("select");
+        (state.catalog.bulkFields || []).forEach((field) => {
+            const option = document.createElement("option");
+            option.value = field.id || "";
+            option.textContent = field.label || field.id || "";
+            option.dataset.fieldType = field.type || "text";
+            fieldSelect.append(option);
+        });
+        fieldWrapper.append(fieldSelect);
+
+        const valueWrapper = document.createElement("label");
+        valueWrapper.className = "admin-field";
+        valueWrapper.innerHTML = "<span>Wert</span>";
+        const valueField = document.createElement("textarea");
+        valueField.rows = 5;
+        valueWrapper.append(valueField);
+
+        const booleanWrapper = document.createElement("label");
+        booleanWrapper.className = "admin-field";
+        booleanWrapper.hidden = true;
+        booleanWrapper.innerHTML = "<span>Wert</span>";
+        const booleanField = document.createElement("input");
+        booleanField.type = "checkbox";
+        booleanWrapper.append(booleanField);
+
+        body.append(fieldWrapper, valueWrapper, booleanWrapper);
+
+        const refreshFieldMode = () => {
+            const fieldType = fieldSelect.selectedOptions[0]?.dataset?.fieldType || "text";
+            const isBoolean = fieldType === "boolean";
+            valueWrapper.hidden = isBoolean;
+            booleanWrapper.hidden = !isBoolean;
+        };
+        fieldSelect.addEventListener("change", refreshFieldMode);
+        refreshFieldMode();
+
+        const cancelButton = document.createElement("button");
+        cancelButton.type = "button";
+        cancelButton.className = "admin-button admin-button--ghost";
+        cancelButton.textContent = "Abbrechen";
+        cancelButton.addEventListener("click", closeModal);
+
+        const saveButton = document.createElement("button");
+        saveButton.type = "button";
+        saveButton.className = "admin-button admin-button--primary";
+        saveButton.textContent = "Anwenden";
+        saveButton.addEventListener("click", guardAsync(async () => {
+            const fieldType = fieldSelect.selectedOptions[0]?.dataset?.fieldType || "text";
+            const response = await request("catalog/bulk-update", {
+                method: "POST",
+                body: {
+                    paths,
+                    fieldId: fieldSelect.value,
+                    value: fieldType === "boolean" ? booleanField.checked : valueField.value,
+                },
+                loading: "immediate",
+                loadingLabel: "Bulk-Aenderungen werden gespeichert...",
+            });
+            state.catalogSelection.clear();
+            applyCatalogPayload(response.catalog || {}, true);
+            closeModal();
+            if (state.currentDocument && response.updatedPaths?.includes(state.currentDocument.path)) {
+                await loadDocument(state.currentDocument.path);
+            }
+            announce(response.message || "Bulk-Aenderungen gespeichert.");
+        }));
+
+        footer.append(cancelButton, saveButton);
+    };
+
+    /**
+     * Opens the map pin editor for an image asset.
+     */
+    const openMapEditorModal = async (assetPath) => {
+        const params = new URLSearchParams({ path: assetPath });
+        const payload = await request(`maps?${params.toString()}`);
+        const map = payload.map || {};
+        const { body, footer } = createModal("Map pins");
+
+        const preview = document.createElement("img");
+        preview.className = "admin-media-detail__preview";
+        preview.src = map.asset?.previewUrl || map.asset?.url || "";
+        preview.alt = map.asset?.displayName || map.path || "Map";
+
+        const titleField = document.createElement("label");
+        titleField.className = "admin-field";
+        titleField.innerHTML = "<span>Titel</span>";
+        const titleInput = document.createElement("input");
+        titleInput.type = "text";
+        titleInput.value = map.title || "";
+        titleField.append(titleInput);
+
+        const descriptionField = document.createElement("label");
+        descriptionField.className = "admin-field";
+        descriptionField.innerHTML = "<span>Beschreibung</span>";
+        const descriptionInput = document.createElement("textarea");
+        descriptionInput.rows = 3;
+        descriptionInput.value = map.description || "";
+        descriptionField.append(descriptionInput);
+
+        const layersField = document.createElement("label");
+        layersField.className = "admin-field";
+        layersField.innerHTML = "<span>Layer (id|label|visible|color)</span>";
+        const layersInput = document.createElement("textarea");
+        layersInput.rows = 4;
+        layersInput.value = (map.layers || []).map((layer) => [layer.id, layer.label, layer.visible ? "true" : "false", layer.color || ""].join("|")).join("\n");
+        layersField.append(layersInput);
+
+        const pinsField = document.createElement("label");
+        pinsField.className = "admin-field";
+        pinsField.innerHTML = "<span>Pins (label|layer|x|y|target|description)</span>";
+        const pinsInput = document.createElement("textarea");
+        pinsInput.rows = 8;
+        pinsInput.value = (map.pins || []).map((pin) => [pin.label, pin.layer, pin.x, pin.y, pin.target || "", pin.description || ""].join("|")).join("\n");
+        pinsField.append(pinsInput);
+
+        preview.addEventListener("click", (event) => {
+            const rect = preview.getBoundingClientRect();
+            if (!rect.width || !rect.height) {
+                return;
+            }
+            const x = ((event.clientX - rect.left) / rect.width).toFixed(4);
+            const y = ((event.clientY - rect.top) / rect.height).toFixed(4);
+            const line = [`Pin ${((pinsInput.value.match(/\n/g) || []).length) + 1}`, "default", x, y, "", ""].join("|");
+            pinsInput.value = pinsInput.value.trim() ? `${pinsInput.value.trim()}\n${line}` : line;
+        });
+
+        body.append(preview, titleField, descriptionField, layersField, pinsField);
+
+        const parseLayers = () => String(layersInput.value || "").split("\n").map((line) => line.trim()).filter(Boolean).map((line) => {
+            const [id, label, visible, color] = line.split("|");
+            return {
+                id: (id || "").trim(),
+                label: (label || id || "").trim(),
+                visible: String(visible || "true").trim().toLowerCase() !== "false",
+                color: (color || "").trim(),
+            };
+        }).filter((entry) => entry.id);
+
+        const parsePins = () => String(pinsInput.value || "").split("\n").map((line) => line.trim()).filter(Boolean).map((line) => {
+            const [label, layer, x, y, target, description] = line.split("|");
+            return {
+                label: (label || "").trim(),
+                layer: (layer || "default").trim(),
+                x: Number.parseFloat(x || "0"),
+                y: Number.parseFloat(y || "0"),
+                target: (target || "").trim(),
+                description: (description || "").trim(),
+            };
+        }).filter((entry) => entry.label && Number.isFinite(entry.x) && Number.isFinite(entry.y));
+
+        const cancelButton = document.createElement("button");
+        cancelButton.type = "button";
+        cancelButton.className = "admin-button admin-button--ghost";
+        cancelButton.textContent = "Abbrechen";
+        cancelButton.addEventListener("click", closeModal);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "admin-button admin-button--ghost";
+        deleteButton.textContent = "Manifest loeschen";
+        deleteButton.addEventListener("click", guardAsync(async () => {
+            if (!window.confirm("Kartendaten wirklich loeschen?")) {
+                return;
+            }
+            const response = await request("maps/delete", {
+                method: "POST",
+                body: { path: assetPath },
+                loading: "immediate",
+                loadingLabel: "Karten-Pins werden geloescht...",
+            });
+            if (response.browser) {
+                renderMedia(response.browser);
+            } else {
+                await loadMedia();
+            }
+            closeModal();
+            announce(response.message || "Kartendaten geloescht.");
+        }));
+
+        const saveButton = document.createElement("button");
+        saveButton.type = "button";
+        saveButton.className = "admin-button admin-button--primary";
+        saveButton.textContent = "Speichern";
+        saveButton.addEventListener("click", guardAsync(async () => {
+            const response = await request("maps/save", {
+                method: "POST",
+                body: {
+                    path: assetPath,
+                    currentPath: state.currentDocument?.path || "",
+                    locale: state.currentDocument?.locale || "",
+                    map: {
+                        title: titleInput.value.trim(),
+                        description: descriptionInput.value.trim(),
+                        layers: parseLayers(),
+                        pins: parsePins(),
+                    },
+                },
+                loading: "immediate",
+                loadingLabel: "Karten-Pins werden gespeichert...",
+            });
+            if (response.browser) {
+                renderMedia(response.browser);
+            } else {
+                await loadMedia();
+            }
+            closeModal();
+            announce(response.message || "Kartendaten gespeichert.");
+        }));
+
+        footer.append(cancelButton, deleteButton, saveButton);
     };
 
     /**
@@ -2757,6 +3572,7 @@
                 iconButton: insertIconButton,
                 mermaidButton: insertMermaidButton,
                 worldorbitButton: insertWorldOrbitButton,
+                mapButton: insertMapButton,
                 graphButton: insertGraphButton,
             },
             previewRenderer: async (markdown) => {
@@ -2898,6 +3714,7 @@
         renderHistory(payload.history || []);
         renderValidation(payload.document.validation);
         renderDocumentList(filterInput.value || "");
+        renderLibrary();
         updateToolbar();
         clearDirty();
         await updatePreview();
@@ -2993,9 +3810,86 @@
         announce("Health-Report aktualisiert.");
     });
 
+    newEntryButtons.forEach((button) => {
+        button.addEventListener("click", guardAsync(async () => {
+            await openCreateEntryModal();
+        }));
+    });
+
+    if (libraryRefreshButton) {
+        libraryRefreshButton.addEventListener("click", guardAsync(async () => {
+            await loadCatalog();
+        }));
+    }
+
+    if (libraryBulkButton) {
+        libraryBulkButton.addEventListener("click", guardAsync(async () => {
+            await openBulkEditModal();
+        }));
+    }
+
+    if (libraryLocaleSelect) {
+        libraryLocaleSelect.addEventListener("change", guardAsync(async () => {
+            await loadCatalog();
+        }));
+    }
+
+    if (libraryTypeSelect) {
+        libraryTypeSelect.addEventListener("change", guardAsync(async () => {
+            await loadCatalog();
+        }));
+    }
+
+    if (libraryRootSelect) {
+        libraryRootSelect.addEventListener("change", guardAsync(async () => {
+            await loadCatalog();
+        }));
+    }
+
+    if (libraryTagSelect) {
+        libraryTagSelect.addEventListener("change", guardAsync(async () => {
+            await loadCatalog();
+        }));
+    }
+
+    if (libraryMissingLocaleSelect) {
+        libraryMissingLocaleSelect.addEventListener("change", guardAsync(async () => {
+            await loadCatalog();
+        }));
+    }
+
+    if (librarySchemaFieldSelect) {
+        librarySchemaFieldSelect.addEventListener("change", guardAsync(async () => {
+            await loadCatalog();
+        }));
+    }
+
+    if (libraryQueryInput) {
+        libraryQueryInput.addEventListener("input", () => {
+            window.clearTimeout(librarySearchTimer);
+            librarySearchTimer = window.setTimeout(() => {
+                void guardAsync(loadCatalog)();
+            }, 220);
+        });
+    }
+
+    if (librarySchemaValueInput) {
+        librarySchemaValueInput.addEventListener("input", () => {
+            window.clearTimeout(librarySearchTimer);
+            librarySearchTimer = window.setTimeout(() => {
+                void guardAsync(loadCatalog)();
+            }, 220);
+        });
+    }
+
     app.addEventListener("cms-admin:workspace-change", (event) => {
         const workspace = event?.detail?.workspace || "editor";
         state.activeWorkspace = workspace;
+        if (workspace === "library") {
+            void guardAsync(async () => {
+                await loadCatalog();
+            })();
+        }
         if (workspace === "media" && (state.currentDocument || !state.documents.length)) {
             void guardAsync(() => ensureMediaLoaded())();
         }
@@ -3129,6 +4023,7 @@
     }
 
     renderTypeOptions();
+    renderLibrary();
     renderDocumentList();
     renderHealth({ summary: bootstrap.healthSummary || {}, issues: [] });
     updateToolbar();
@@ -3161,7 +4056,10 @@
             const initialPath = bootstrap.selectedPath || state.documents[0]?.path;
             if (initialPath) {
                 await loadDocument(initialPath);
-                return;
+            }
+
+            if (state.activeWorkspace === "library" || !state.catalog?.entries?.length) {
+                await loadCatalog();
             }
 
             if (state.activeWorkspace === "media") {

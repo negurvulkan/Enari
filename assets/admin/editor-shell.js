@@ -167,6 +167,11 @@
                 return `Graph · ${parsed.title || parsed.from || "block"}`;
             }
 
+            if (item.type === "map") {
+                const parsed = item.parsed || {};
+                return `Map · ${parsed.title || parsed.asset || "block"}`;
+            }
+
             if (item.type === "worldorbit") {
                 const parsed = item.parsed || {};
                 return `WorldOrbit · ${parsed.title || parsed.systemId || "atlas"}`;
@@ -721,6 +726,11 @@
                     void openWorldOrbitDialog();
                 });
             }
+            if (refs.mapButton) {
+                refs.mapButton.addEventListener("click", function () {
+                    void openMapDialog();
+                });
+            }
             if (refs.graphButton) {
                 refs.graphButton.addEventListener("click", function () {
                     void openGraphDialog();
@@ -744,6 +754,7 @@
             openEmbedDialog,
             openMermaidDialog,
             openWorldOrbitDialog,
+            openMapDialog,
             openGraphDialog,
         };
 
@@ -766,6 +777,10 @@
             }
             if (item.type === "graph") {
                 await openGraphDialog(item);
+                return;
+            }
+            if (item.type === "map") {
+                await openMapDialog(item);
                 return;
             }
             if (item.type === "worldorbit") {
@@ -820,6 +835,19 @@
                 "planet example-planet orbit example-star distance 1 au",
                 "```",
             ].join("\n");
+        }
+
+        /**
+         * Builds a starter map block.
+         */
+        function createMapStarterBlock() {
+            return adapter.buildMapBlock({
+                asset: "./99_Medien/uploads/map.png",
+                title: "Regional Map",
+                caption: "Map pins are loaded from the image sidecar manifest.",
+                height: "34rem",
+                layers: ["default"],
+            });
         }
 
         async function openWorldOrbitDialog(item) {
@@ -1536,6 +1564,60 @@
             updateAdvancedFromBuilder();
             refreshPreview();
         }
+
+        async function openMapDialog(item) {
+            const parsed = item && item.parsed
+                ? item.parsed
+                : adapter.parseMapBlock(createMapStarterBlock());
+            const dialog = createDialog("Map-Block");
+            const grid = document.createElement("div");
+            grid.className = "admin-modal__grid";
+
+            const assetField = buildLabeledInput("Asset", parsed.asset || "");
+            const titleField = buildLabeledInput("Titel", parsed.title || "");
+            const captionField = buildLabeledInput("Caption", parsed.caption || "");
+            const heightField = buildLabeledInput("Height", parsed.height || "34rem");
+            const layersField = buildLabeledInput("Layers", Array.isArray(parsed.layers) ? parsed.layers.join(", ") : "");
+            const extraField = buildLabeledTextarea("Zusatzfelder", Array.isArray(parsed.extraLines) ? parsed.extraLines.join("\n") : "", 5);
+
+            assetField.input.setAttribute("list", "admin-media-options");
+            ensureAssetDataList("admin-media-options", state.assets.map(function (asset) {
+                return asset.relativeReference || makeRelativeReference(state.currentPath, asset.relativePath || "");
+            }));
+
+            grid.append(
+                assetField.wrapper,
+                titleField.wrapper,
+                captionField.wrapper,
+                heightField.wrapper,
+                layersField.wrapper
+            );
+            dialog.body.append(grid, extraField.wrapper);
+
+            const cancelButton = createDialogButton("Abbrechen", "admin-button--ghost");
+            const saveButton = createDialogButton(item ? "Aktualisieren" : "Einfuegen", "admin-button--primary");
+            cancelButton.addEventListener("click", dialog.close);
+            saveButton.addEventListener("click", function () {
+                const markdown = adapter.buildMapBlock({
+                    asset: assetField.input.value.trim(),
+                    title: titleField.input.value.trim(),
+                    caption: captionField.input.value.trim(),
+                    height: heightField.input.value.trim(),
+                    layers: layersField.input.value.split(",").map(function (entry) {
+                        return entry.trim();
+                    }).filter(Boolean),
+                    extraLines: extraField.textarea.value.split("\n"),
+                });
+                if (item) {
+                    replaceExtension(item.id, markdown);
+                } else {
+                    insertExtension(markdown, "map", false);
+                }
+                dialog.close();
+            });
+            dialog.footer.append(cancelButton, saveButton);
+        }
+
         async function openGraphDialog(item) {
             const parsed = item && item.parsed ? item.parsed : adapter.parseGraphBlock("::graph\ntitle: Example Graph\nfrom: example\ndepth: 1\nlayout: cose\n::");
             const dialog = createDialog("Graph-Block");

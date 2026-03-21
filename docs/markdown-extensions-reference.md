@@ -219,12 +219,55 @@ Common top-level keys used by the renderer:
 
 Use Cytoscape when the graph should reflect CMS relations, navigation context, or mixed manual/CMS graph data.
 
-## 7. Common Mistakes
+## 7. Image Map `::map` Blocks
+
+Use `::map` blocks for image-based maps with clickable pins and layer toggles.
+
+Minimal map:
+
+```md
+::map
+asset: ./99_Medien/01_Illustrationen/demo-archive-station.svg
+title: Demo Archive Station
+::
+```
+
+Map with caption, height, and visible layers:
+
+```md
+::map
+asset: ./99_Medien/01_Illustrationen/demo-archive-station.svg
+title: Demo Archive Station
+caption: Clickable pins are loaded from the image sidecar manifest.
+height: 34rem
+layers: default,notes
+::
+```
+
+Renderer keys:
+
+- `asset`
+- `title`
+- `caption`
+- `height`
+- `layers`
+
+Behavior rules:
+
+- the block references an image asset; the pin and layer data live in a sidecar file named `<asset>.map.yaml`
+- create and edit the sidecar through the Media workspace `Map pins` editor
+- pin targets may point to CMS pages, media assets, or external URLs
+- CMS targets use the same resolver rules as WorldOrbit bindings, so relative paths, slugs, content references, and `translation_key` targets are allowed
+- the frontend only loads the map viewer on pages that actually contain a `::map` block
+
+Use `::map` when the primary artifact is an image map or region map. Use WorldOrbit for atlas-like system diagrams and `::graph` for relation graphs.
+
+## 8. Common Mistakes
 
 - Do not hardcode `/<locale>/?page=...` inside content when a relative link works.
 - Do not use raw HTML for images or icons when normal Markdown or wiki-style embeds already support the case.
 - Do not use Cytoscape `::graph` blocks for simple explanatory flowcharts that Mermaid handles better.
 - Do not use WorldOrbit bindings without `object=` and `page=`; incomplete `#cms-bind` comments are treated as warnings.
 - Do not rely on object-name guessing for CMS links inside WorldOrbit blocks.
-- Do not omit the closing `::` in a graph block.
+- Do not omit the closing `::` in a graph or map block.
 - Do not invent unsupported option names or undocumented graph block syntax.

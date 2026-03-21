@@ -1,4 +1,4 @@
-# AI Authoring Guide for WorldMesh Markdown CMS
+# AI Authoring Guide for LoreRoot
 
 This repository uses a hierarchical `AGENTS.md` system for AI-assisted authoring. This root file defines the global defaults. Nested `AGENTS.md` files in subdirectories are more specific and take precedence for their subtree.
 
@@ -6,7 +6,7 @@ README is written for humans. `AGENTS.md` files are the canonical AI instruction
 
 ## 1. Repo Purpose and Source of Truth
 
-The project is a file-based Markdown CMS for worldbuilding and structured knowledge content.
+The project is LoreRoot, a file-based Markdown system for worldbuilding and structured lore.
 
 Primary sources of truth:
 

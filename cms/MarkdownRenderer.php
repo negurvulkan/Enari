@@ -7,6 +7,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/CytoscapeGraphRenderer.php';
+require_once __DIR__ . '/MapBlockRenderer.php';
 require_once __DIR__ . '/WorldOrbitBlockRenderer.php';
 
 /**
@@ -36,6 +37,13 @@ final class MarkdownRenderer
     private $worldOrbitBlockRenderer;
 
     /**
+     * Stores map renderer.
+     *
+     * @var MapBlockRenderer
+     */
+    private $mapBlockRenderer;
+
+    /**
      * Stores heading IDs.
      *
      * @var array<string, int>
@@ -56,6 +64,7 @@ final class MarkdownRenderer
     {
         $this->repository = $repository;
         $this->graphRenderer = new CytoscapeGraphRenderer();
+        $this->mapBlockRenderer = new MapBlockRenderer($repository, dirname(__DIR__));
         $this->worldOrbitBlockRenderer = new WorldOrbitBlockRenderer($repository);
     }
 
@@ -133,6 +142,12 @@ final class MarkdownRenderer
             if (trim($line) === '::graph') {
                 $definition = $this->parseGraphBlock($lines, $index);
                 $html[] = $this->renderCytoscapeGraphBlock($definition, $currentDocumentRelativePath);
+                continue;
+            }
+
+            if (trim($line) === '::map') {
+                $definition = $this->parseMapBlock($lines, $index);
+                $html[] = $this->renderMapBlock($definition, $currentDocumentRelativePath);
                 continue;
             }
 
@@ -289,6 +304,102 @@ final class MarkdownRenderer
     private function renderWorldOrbitBlock(string $definition, string $currentDocumentRelativePath): string
     {
         return $this->worldOrbitBlockRenderer->render($definition, $currentDocumentRelativePath);
+    }
+
+    /**
+     * Renders map block.
+     *
+     * @param array<string, mixed> $definition
+     */
+    private function renderMapBlock(array $definition, string $currentDocumentRelativePath): string
+    {
+        return $this->mapBlockRenderer->render($definition, $currentDocumentRelativePath);
+    }
+
+    /**
+     * Parses map block.
+     *
+     * @return array<string, mixed>
+     */
+    private function parseMapBlock(array $lines, int &$index): array
+    {
+        $index++;
+        $buffer = array();
+        $count = count($lines);
+
+        while ($index < $count && trim($lines[$index]) !== '::') {
+            $buffer[] = $lines[$index];
+            $index++;
+        }
+
+        if ($index < $count && trim($lines[$index]) === '::') {
+            $index++;
+        }
+
+        return $this->parseMapDefinition($buffer);
+    }
+
+    /**
+     * Parses a map definition.
+     *
+     * @param string[] $lines
+     * @return array<string, mixed>
+     */
+    private function parseMapDefinition(array $lines): array
+    {
+        $definition = array();
+
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+            if ($trimmed === '' || strpos($trimmed, '#') === 0) {
+                continue;
+            }
+
+            if (preg_match('/^\s*([A-Za-z][\w-]*)\s*:\s*(.*)$/u', $line, $matches) !== 1) {
+                continue;
+            }
+
+            $key = strtolower(trim((string) $matches[1]));
+            $rawValue = trim((string) ($matches[2] ?? ''));
+            if ($key === 'layers') {
+                $definition[$key] = $this->parseMapLayersValue($rawValue);
+                continue;
+            }
+
+            $definition[$key] = $this->parseGraphScalar($rawValue);
+        }
+
+        return $definition;
+    }
+
+    /**
+     * Parses a map layer list.
+     *
+     * @return string[]
+     */
+    private function parseMapLayersValue(string $value): array
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return array();
+        }
+
+        if ($value[0] === '[' && substr($value, -1) === ']') {
+            $value = substr($value, 1, -1);
+        }
+
+        $items = preg_split('/[\r\n,]+/', $value) ?: array();
+        $layers = array();
+        foreach ($items as $item) {
+            $entry = trim(trim((string) $item), "\"'");
+            if ($entry === '') {
+                continue;
+            }
+
+            $layers[$entry] = $entry;
+        }
+
+        return array_values($layers);
     }
 
     /**
@@ -1262,6 +1373,10 @@ final class MarkdownRenderer
         }
 
         if (trim($line) === '::graph') {
+            return true;
+        }
+
+        if (trim($line) === '::map') {
             return true;
         }
 

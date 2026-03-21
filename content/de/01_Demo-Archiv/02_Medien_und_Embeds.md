@@ -12,4 +12,14 @@ Diese Seite zeigt, wie kleine Demo-Dateien ueber relative Pfade im Markdown eing
 
 ![[./99_Medien/01_Illustrationen/demo-archive-station.svg|caption=Schema einer Archivstation|medium|left|popover]]
 
+## Karten-Pins
+
+::map
+asset: ./99_Medien/01_Illustrationen/demo-archive-station.svg
+title: Demo-Archivstation
+caption: Interaktive Pins und Layer werden aus dem Sidecar-Manifest neben der SVG-Datei geladen.
+height: 36rem
+layers: default,notes
+::
+
 Die Dateien liegen bewusst im kleinen Demo-Medienordner und sind fuer den Admin-Medienbrowser leicht nachvollziehbar.

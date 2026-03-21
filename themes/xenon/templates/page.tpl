@@ -1,7 +1,7 @@
 {* Smarty *}
 {assign var=xenon value=$view.xenon}
 {assign var=documentTitle value=$document.title|default:$siteName}
-{assign var=brandTitle value=$siteSettings.brandTitle|default:'WorldMesh'}
+{assign var=brandTitle value=$siteSettings.brandTitle|default:'LoreRoot'}
 {assign var=brandEyebrow value=$siteSettings.brandEyebrow|default:'Archive Interface'}
 
 <div class="shell shell--xenon">

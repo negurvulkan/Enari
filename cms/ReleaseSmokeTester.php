@@ -608,11 +608,11 @@ final class ReleaseSmokeTester
      */
     private function buildThemeStorageKey(array $siteConfig): string
     {
-        $base = trim((string) ($siteConfig['site']['key'] ?? 'worldmesh-cms'));
-        $base = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower($base)) ?? 'worldmesh-cms';
+        $base = trim((string) ($siteConfig['site']['key'] ?? 'loreroot-cms'));
+        $base = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower($base)) ?? 'loreroot-cms';
         $base = trim($base, '-_');
 
-        return ($base !== '' ? $base : 'worldmesh-cms') . '-theme';
+        return ($base !== '' ? $base : 'loreroot-cms') . '-theme';
     }
 
     /**

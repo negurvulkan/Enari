@@ -205,7 +205,7 @@ final class SmartyRenderer
                 is_array($params['themeOptions'] ?? null) ? $params['themeOptions'] : array(),
                 (string) ($params['themeDefaultLight'] ?? 'parchment'),
                 (string) ($params['themeDefaultDark'] ?? 'midnight'),
-                (string) ($params['themeStorageKey'] ?? 'worldmesh-cms-theme')
+                (string) ($params['themeStorageKey'] ?? 'loreroot-cms-theme')
             );
         });
 
@@ -223,7 +223,7 @@ final class SmartyRenderer
                 is_array($params['themeOptions'] ?? null) ? $params['themeOptions'] : array(),
                 (string) ($params['themeDefaultLight'] ?? 'parchment'),
                 (string) ($params['themeDefaultDark'] ?? 'midnight'),
-                (string) ($params['themeStorageKey'] ?? 'worldmesh-cms-theme'),
+                (string) ($params['themeStorageKey'] ?? 'loreroot-cms-theme'),
                 is_array($params['localeOptions'] ?? null) ? $params['localeOptions'] : array(),
                 is_array($params['homeSections'] ?? null) ? $params['homeSections'] : array(),
                 is_array($params['document'] ?? null) ? $params['document'] : null,

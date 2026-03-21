@@ -736,6 +736,64 @@ body.admin-app-page.is-busy {
     gap: 0.75rem;
 }
 
+.admin-compare-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.admin-library-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 0.75rem;
+}
+
+.admin-library-table-wrap {
+    overflow: auto;
+    border: 1px solid var(--admin-line);
+    border-radius: 0.95rem;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-library-table {
+    width: 100%;
+    min-width: 60rem;
+    border-collapse: collapse;
+}
+
+.admin-library-table th,
+.admin-library-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--admin-line);
+    text-align: left;
+    vertical-align: top;
+}
+
+.admin-library-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: rgba(12, 18, 28, 0.96);
+    color: var(--admin-muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.admin-library-row.is-active td {
+    background: rgba(65, 198, 255, 0.08);
+}
+
+.admin-library-cell {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.admin-placeholder-cell {
+    padding: 1rem;
+    color: var(--admin-muted);
+}
+
 .admin-modal__textarea {
     width: 100%;
     min-height: 16rem;
@@ -896,6 +954,10 @@ body.admin-app-page.is-busy {
     }
 
     .admin-modal__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-compare-grid {
         grid-template-columns: 1fr;
     }
 }

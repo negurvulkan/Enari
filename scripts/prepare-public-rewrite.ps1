@@ -1,6 +1,6 @@
 param(
-    [string]$TargetPath = '..\worldmesh-public-rewrite',
-    [string]$BundlePath = '..\worldmesh-pre-public.bundle',
+    [string]$TargetPath = '..\loreroot-public-rewrite',
+    [string]$BundlePath = '..\loreroot-pre-public.bundle',
     [string]$MainBranch = 'main',
     [string]$ReleaseTag = 'v1.2'
 )
@@ -44,7 +44,7 @@ try {
         Write-Host 'Creating fresh public root commit' -ForegroundColor Cyan
         Invoke-Git -Arguments @('checkout', '--orphan', 'public-main')
         Invoke-Git -Arguments @('add', '-A')
-        Invoke-Git -Arguments @('commit', '-m', 'Initial public release of WorldMesh Worldbuilder CMS')
+        Invoke-Git -Arguments @('commit', '-m', 'Initial public release of LoreRoot')
 
         foreach ($tag in @('v1.1', $ReleaseTag)) {
             & git tag -d $tag *> $null

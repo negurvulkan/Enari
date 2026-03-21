@@ -6,25 +6,25 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/cms/ContentRepository.php';
-require __DIR__ . '/cms/CytoscapeGraphRenderer.php';
-require __DIR__ . '/cms/MarkdownRenderer.php';
-require __DIR__ . '/cms/LayoutViewFactory.php';
-require __DIR__ . '/cms/SmartyRenderer.php';
-require __DIR__ . '/cms/SimpleYamlParser.php';
-require __DIR__ . '/cms/SiteConfigLoader.php';
-require __DIR__ . '/cms/SchemaRegistry.php';
-require __DIR__ . '/cms/EntryViewFactory.php';
-require __DIR__ . '/cms/TypePanelProviderInterface.php';
-require __DIR__ . '/cms/ModuleRegistry.php';
-require __DIR__ . '/cms/TypePanelRegistry.php';
-require __DIR__ . '/cms/TypeTemplateRenderer.php';
-require __DIR__ . '/cms/I18nContentValidator.php';
-require __DIR__ . '/cms/ReleaseSmokeTester.php';
-require __DIR__ . '/cms/DocumentCodec.php';
-require __DIR__ . '/cms/GitWorkspace.php';
-require __DIR__ . '/cms/AdminWorkspace.php';
-require __DIR__ . '/cms/SetupAssistant.php';
+require_once __DIR__ . '/cms/ContentRepository.php';
+require_once __DIR__ . '/cms/CytoscapeGraphRenderer.php';
+require_once __DIR__ . '/cms/MarkdownRenderer.php';
+require_once __DIR__ . '/cms/LayoutViewFactory.php';
+require_once __DIR__ . '/cms/SmartyRenderer.php';
+require_once __DIR__ . '/cms/SimpleYamlParser.php';
+require_once __DIR__ . '/cms/SiteConfigLoader.php';
+require_once __DIR__ . '/cms/SchemaRegistry.php';
+require_once __DIR__ . '/cms/EntryViewFactory.php';
+require_once __DIR__ . '/cms/TypePanelProviderInterface.php';
+require_once __DIR__ . '/cms/ModuleRegistry.php';
+require_once __DIR__ . '/cms/TypePanelRegistry.php';
+require_once __DIR__ . '/cms/TypeTemplateRenderer.php';
+require_once __DIR__ . '/cms/I18nContentValidator.php';
+require_once __DIR__ . '/cms/ReleaseSmokeTester.php';
+require_once __DIR__ . '/cms/DocumentCodec.php';
+require_once __DIR__ . '/cms/GitWorkspace.php';
+require_once __DIR__ . '/cms/AdminWorkspace.php';
+require_once __DIR__ . '/cms/SetupAssistant.php';
 
 /**
  * Processes app base URL.
@@ -658,7 +658,7 @@ function theme_cookie_path(): string
 function theme_resolved_cookie_name(string $themeStorageKey): string
 {
     $themeStorageKey = trim($themeStorageKey);
-    return ($themeStorageKey !== '' ? $themeStorageKey : 'worldmesh-cms-theme') . '-resolved';
+    return ($themeStorageKey !== '' ? $themeStorageKey : 'loreroot-cms-theme') . '-resolved';
 }
 
 /**
@@ -1367,7 +1367,7 @@ function render_config_setup_page(string $message): void
 
     $safeMessage = nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8'));
     echo '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
-    echo '<title>WorldMesh Setup Required</title>';
+    echo '<title>LoreRoot Setup Required</title>';
     echo '<style>body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#08111a;color:#edf3f7}'
         . '.setup{max-width:760px;margin:8vh auto;padding:2rem 1.5rem}.panel{border:1px solid rgba(255,255,255,.12);'
         . 'border-radius:18px;background:rgba(15,25,38,.92);padding:1.5rem 1.6rem;box-shadow:0 18px 50px rgba(0,0,0,.35)}'
@@ -1376,7 +1376,8 @@ function render_config_setup_page(string $message): void
         . 'pre{white-space:pre-wrap;line-height:1.6;background:rgba(255,255,255,.04);padding:1rem;border-radius:12px;overflow:auto}'
         . '</style></head><body><main class="setup"><section class="panel"><p class="eyebrow">Setup Required</p>'
         . '<h1>Die lokale CMS-Konfiguration ist vorhanden, aber nicht lauffaehig.</h1>'
-        . '<p>Fuer frische Webspace-Uploads startet WorldMesh automatisch den Setup-Assistenten. '
+        . '<p>A file-based Markdown system for worldbuilding and structured lore.</p>'
+        . '<p>Fuer frische Webspace-Uploads startet LoreRoot automatisch den Setup-Assistenten. '
         . 'Wenn du diese Meldung siehst, existiert bereits eine <code>site.config.php</code>, die manuell korrigiert werden muss.</p>'
         . '<pre>' . $safeMessage . '</pre></section></main></body></html>';
     exit;
@@ -1395,13 +1396,13 @@ try {
 }
 
 $siteDefaults = array(
-    'key' => 'worldmesh-demo',
+    'key' => 'loreroot-demo',
     'lang' => 'de',
-    'name' => 'WorldMesh Worldbuilder CMS',
-    'brandEyebrow' => 'Markdown demo',
-    'brandTitle' => 'WorldMesh',
+    'name' => 'LoreRoot',
+    'brandEyebrow' => 'A file-based Markdown system for worldbuilding and structured lore',
+    'brandTitle' => 'LoreRoot',
     'mastheadEyebrow' => 'Public example repository',
-    'defaultLead' => 'Kleines Demo-Archiv fuer das dateibasierte WorldMesh Worldbuilder CMS.',
+    'defaultLead' => 'A file-based Markdown system for worldbuilding and structured lore.',
 );
 $uiDefaults = array(
     'tocTitle' => 'Auf dieser Seite',
@@ -1481,13 +1482,21 @@ $cytoscapeDefaults = array(
         'maxZoom' => 2.8,
     ),
 );
+$mapDefaults = array(
+    'enabled' => true,
+    'viewer' => array(
+        'showDetails' => true,
+        'showLayerControls' => true,
+        'defaultHeight' => '34rem',
+    ),
+);
 $adminDefaults = array(
     'enabled' => true,
-    'title' => 'WorldMesh Admin Workspace',
+    'title' => 'LoreRoot Admin Workspace',
     'username' => getenv('CMS_ADMIN_USERNAME') !== false ? (string) getenv('CMS_ADMIN_USERNAME') : 'admin',
     'password' => getenv('CMS_ADMIN_PASSWORD') !== false ? (string) getenv('CMS_ADMIN_PASSWORD') : '',
     'passwordHash' => getenv('CMS_ADMIN_PASSWORD_HASH') !== false ? (string) getenv('CMS_ADMIN_PASSWORD_HASH') : '',
-    'sessionCookie' => 'worldmesh-admin',
+    'sessionCookie' => 'loreroot-admin',
     'trustedLocalFallback' => true,
     'historyRoot' => 'cache/admin-history',
     'theme' => 'admin-atlas',
@@ -1500,7 +1509,7 @@ $adminDefaults = array(
         'allowRemoteSetup' => true,
         'allowPull' => true,
         'allowPush' => true,
-        'authorName' => getenv('CMS_GIT_AUTHOR_NAME') !== false ? (string) getenv('CMS_GIT_AUTHOR_NAME') : 'WorldMesh CMS',
+        'authorName' => getenv('CMS_GIT_AUTHOR_NAME') !== false ? (string) getenv('CMS_GIT_AUTHOR_NAME') : 'LoreRoot',
         'authorEmail' => getenv('CMS_GIT_AUTHOR_EMAIL') !== false ? (string) getenv('CMS_GIT_AUTHOR_EMAIL') : 'cms@example.invalid',
         'mergeSessionRoot' => 'cache/admin-git-merge',
     ),
@@ -1559,14 +1568,15 @@ $integrationsConfig = is_array($siteConfig['integrations'] ?? null) ? $siteConfi
 $mermaidSettings = array_replace($mermaidDefaults, is_array($integrationsConfig['mermaid'] ?? null) ? $integrationsConfig['mermaid'] : array());
 $worldorbitSettings = array_replace($worldorbitDefaults, is_array($integrationsConfig['worldorbit'] ?? null) ? $integrationsConfig['worldorbit'] : array());
 $cytoscapeSettings = array_replace($cytoscapeDefaults, is_array($integrationsConfig['cytoscape'] ?? null) ? $integrationsConfig['cytoscape'] : array());
+$mapSettings = array_replace($mapDefaults, is_array($integrationsConfig['maps'] ?? null) ? $integrationsConfig['maps'] : array());
 
 $siteLanguage = trim((string) ($siteSettings['lang'] ?? ($activeLocale !== '' ? $activeLocale : 'de')))
     ?: ($activeLocale !== '' ? $activeLocale : 'de');
-$siteName = trim((string) ($siteSettings['name'] ?? 'WorldMesh Worldbuilder CMS')) ?: 'WorldMesh Worldbuilder CMS';
-$themeStorageKeyBase = trim((string) ($siteSettings['key'] ?? 'worldmesh-cms')) ?: 'worldmesh-cms';
-$themeStorageKeyBase = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower($themeStorageKeyBase)) ?? 'worldmesh-cms';
+$siteName = trim((string) ($siteSettings['name'] ?? 'LoreRoot')) ?: 'LoreRoot';
+$themeStorageKeyBase = trim((string) ($siteSettings['key'] ?? 'loreroot-cms')) ?: 'loreroot-cms';
+$themeStorageKeyBase = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower($themeStorageKeyBase)) ?? 'loreroot-cms';
 $themeStorageKeyBase = trim($themeStorageKeyBase, '-_');
-$themeStorageKey = ($themeStorageKeyBase !== '' ? $themeStorageKeyBase : 'worldmesh-cms') . '-theme';
+$themeStorageKey = ($themeStorageKeyBase !== '' ? $themeStorageKeyBase : 'loreroot-cms') . '-theme';
 $contentRoot = trim((string) ($contentSettings['root'] ?? ''));
 $homePageConfig = is_array($localeViewConfig['homePage'] ?? null) ? $localeViewConfig['homePage'] : array();
 $standalonePagesConfig = is_array($localeViewConfig['standalonePages'] ?? null) ? $localeViewConfig['standalonePages'] : array();
@@ -1696,6 +1706,11 @@ $cytoscapeClientConfig = array(
     'options' => is_array($cytoscapeSettings['options'] ?? null) ? $cytoscapeSettings['options'] : array(),
 );
 $cytoscapeClientConfigJson = json_encode($cytoscapeClientConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$mapClientConfig = array(
+    'enabled' => !empty($mapSettings['enabled']),
+    'viewer' => is_array($mapSettings['viewer'] ?? null) ? $mapSettings['viewer'] : array(),
+);
+$mapClientConfigJson = json_encode($mapClientConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 $adminWorkspace = new AdminWorkspace(
     __DIR__,
@@ -1717,6 +1732,7 @@ $adminWorkspace = new AdminWorkspace(
     $mermaidClientConfig,
     $worldorbitClientConfig,
     $cytoscapeClientConfig,
+    $mapClientConfig,
     $moduleStylesheets
 );
 
@@ -2018,6 +2034,7 @@ if ($contentArticleHtml === '') {
 $pageHasMermaid = $contentHtml !== '' && strpos($contentHtml, 'data-mermaid-block') !== false;
 $pageHasWorldOrbit = $contentHtml !== '' && strpos($contentHtml, 'data-worldorbit-block') !== false;
 $pageHasCytoscape = $contentHtml !== '' && strpos($contentHtml, 'data-cms-graph-block') !== false;
+$pageHasMaps = $contentHtml !== '' && strpos($contentHtml, 'data-cms-map-block') !== false;
 
 $stats = $repository->getStats();
 $homeSections = $repository->getHomeSections();
@@ -2236,6 +2253,7 @@ $pageLoaderLabel = 'Inhalte werden geladen...';
             window.__CMS_MERMAID = <?= $mermaidClientConfigJson ?: '{}' ?>;
             window.__CMS_WORLDORBIT = <?= $worldorbitClientConfigJson ?: '{}' ?>;
             window.__CMS_CYTOSCAPE = <?= $cytoscapeClientConfigJson ?: '{}' ?>;
+            window.__CMS_MAPS = <?= $mapClientConfigJson ?: '{}' ?>;
         })();
     </script>
     <link rel="stylesheet" href="<?= e($repository->assetUrl('assets/styles.css')) ?>">
@@ -2274,6 +2292,9 @@ $pageLoaderLabel = 'Inhalte werden geladen...';
 <?php endif; ?>
 <?php if ($cytoscapeEnabled && $pageHasCytoscape): ?>
     <script src="<?= e($repository->assetUrl('assets/cytoscape.js')) ?>" defer></script>
+<?php endif; ?>
+<?php if (!empty($mapClientConfig['enabled']) && $pageHasMaps): ?>
+    <script src="<?= e($repository->assetUrl('assets/map-viewer.js')) ?>" defer></script>
 <?php endif; ?>
 <?php foreach ($moduleScripts as $moduleScript): ?>
     <script src="<?= e((string) ($moduleScript['url'] ?? '')) ?>"<?= !empty($moduleScript['type']) ? ' type="' . e((string) $moduleScript['type']) . '"' : '' ?><?= !empty($moduleScript['async']) ? ' async' : '' ?><?= empty($moduleScript['async']) && !array_key_exists('defer', $moduleScript) || !empty($moduleScript['defer']) ? ' defer' : '' ?><?= trim((string) ($moduleScript['crossorigin'] ?? '')) !== '' ? ' crossorigin="' . e((string) $moduleScript['crossorigin']) . '"' : '' ?><?= trim((string) ($moduleScript['referrerpolicy'] ?? '')) !== '' ? ' referrerpolicy="' . e((string) $moduleScript['referrerpolicy']) . '"' : '' ?><?= trim((string) ($moduleScript['integrity'] ?? '')) !== '' ? ' integrity="' . e((string) $moduleScript['integrity']) . '"' : '' ?>></script>

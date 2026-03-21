@@ -55,7 +55,7 @@
     const parseHashState = () => {
         const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
         return {
-            workspace: params.get("workspace") || "editor",
+            workspace: params.get("workspace") || "library",
             tab: params.get("tab") || "",
         };
     };
@@ -105,7 +105,7 @@
     const applyWorkspaceState = (workspace, requestedTab = "", { updateHash = true } = {}) => {
         const workspaceId = workspaceButtons.some((button) => button.dataset.adminWorkspaceButton === workspace)
             ? workspace
-            : "editor";
+            : "library";
         const tabId = resolveTabId(workspaceId, requestedTab);
 
         workspaceButtons.forEach((button) => {

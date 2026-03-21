@@ -224,7 +224,7 @@ $detailSecondaryActionLabel = $currentDirectory !== null ? 'Sector Overview' : '
                 <a class="brand xenon-brand__link" href="<?= e($repository->homeUrl()) ?>">
                     <span class="xenon-brand__glyph" aria-hidden="true"></span>
                     <span class="xenon-brand__copy">
-                        <span class="brand__title xenon-brand__title"><?= e((string) ($siteSettings['brandTitle'] ?? 'WorldMesh')) ?></span>
+                        <span class="brand__title xenon-brand__title"><?= e((string) ($siteSettings['brandTitle'] ?? 'LoreRoot')) ?></span>
                         <span class="brand__eyebrow xenon-brand__eyebrow"><?= e((string) ($siteSettings['brandEyebrow'] ?? 'Archive Interface')) ?></span>
                     </span>
                 </a>
@@ -296,7 +296,7 @@ $detailSecondaryActionLabel = $currentDirectory !== null ? 'Sector Overview' : '
                     <span class="xenon-userchip__dot" aria-hidden="true"></span>
                     <div class="xenon-userchip__copy">
                         <strong>System Admin</strong>
-                        <span>ID: <?= e(strtoupper(substr((string) ($siteSettings['key'] ?? 'worldmesh'), 0, 12))) ?></span>
+                        <span>ID: <?= e(strtoupper(substr((string) ($siteSettings['key'] ?? 'loreroot'), 0, 12))) ?></span>
                     </div>
                     <span class="xenon-userchip__avatar"><?= e(strtoupper(substr((string) ($siteSettings['brandTitle'] ?? 'EN'), 0, 2))) ?></span>
                 </div>

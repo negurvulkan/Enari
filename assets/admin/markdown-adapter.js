@@ -99,6 +99,17 @@
             return "Graph block";
         }
 
+        if (item.type === "map") {
+            const parsed = item.parsed || {};
+            if (parsed.title) {
+                return `Map · ${parsed.title}`;
+            }
+            if (parsed.asset) {
+                return `Map · ${parsed.asset}`;
+            }
+            return "Map block";
+        }
+
         if (item.type === "worldorbit") {
             const parsed = item.parsed || {};
             if (parsed.title) {
@@ -165,6 +176,21 @@
             }
             if (Array.isArray(parsed.edges) && parsed.edges.length) {
                 meta.push(`${parsed.edges.length} edges`);
+            }
+            return meta.join(" · ");
+        }
+
+        if (item.type === "map") {
+            const parsed = item.parsed || {};
+            const meta = [];
+            if (parsed.height) {
+                meta.push(`height=${parsed.height}`);
+            }
+            if (Array.isArray(parsed.layers) && parsed.layers.length) {
+                meta.push(`${parsed.layers.length} Layer`);
+            }
+            if (parsed.asset) {
+                meta.push(parsed.asset);
             }
             return meta.join(" · ");
         }
@@ -1298,6 +1324,53 @@
     }
 
     /**
+     * Parses map block.
+     */
+    function parseMapBlock(raw) {
+        const text = normalizeLineEndings(raw);
+        const lines = text.split("\n");
+        if (lines.length && /^::map\b/i.test(lines[0].trim())) {
+            lines.shift();
+        }
+        if (lines.length && lines[lines.length - 1].trim() === "::") {
+            lines.pop();
+        }
+        const parsed = {};
+        const extras = [];
+        lines.forEach(function (line) {
+            const trimmed = String(line || "").replace(/\s+$/, "");
+            if (!trimmed.trim()) {
+                return;
+            }
+            const match = trimmed.match(/^\s*([A-Za-z][\w-]*)\s*:\s*(.*)$/);
+            if (!match) {
+                extras.push(trimmed);
+                return;
+            }
+            const key = String(match[1] || "").trim().toLowerCase();
+            const value = parseGraphScalar(match[2]);
+            if (key === "image") {
+                parsed.asset = value;
+            } else if (key === "layers") {
+                parsed.layers = normalizeGraphListString(value).split(",").map(function (entry) {
+                    return entry.trim();
+                }).filter(Boolean);
+            } else if (["asset", "title", "caption", "height"].includes(key)) {
+                parsed[key] = value;
+            } else {
+                extras.push(trimmed);
+            }
+        });
+        parsed.asset = parsed.asset || "";
+        parsed.title = parsed.title || "";
+        parsed.caption = parsed.caption || "";
+        parsed.height = parsed.height || "34rem";
+        parsed.layers = Array.isArray(parsed.layers) ? parsed.layers : [];
+        parsed.extraLines = extras;
+        return parsed;
+    }
+
+    /**
      * Normalizes graph list string.
      */
     function normalizeGraphListString(value) {
@@ -1423,6 +1496,49 @@
     }
 
     /**
+     * Builds map block.
+     */
+    function buildMapBlock(value) {
+        const data = Object.assign({
+            asset: "",
+            title: "",
+            caption: "",
+            height: "34rem",
+            layers: [],
+            extraLines: [],
+        }, value || {});
+
+        const lines = ["::map"];
+        [
+            ["asset", data.asset],
+            ["title", data.title],
+            ["caption", data.caption],
+            ["height", data.height],
+        ].forEach(function (entry) {
+            if (entry[1] === "" || entry[1] == null) {
+                return;
+            }
+            lines.push(`${entry[0]}: ${entry[1]}`);
+        });
+
+        if (data.layers && normalizeGraphListString(data.layers)) {
+            lines.push(`layers: ${normalizeGraphListString(data.layers)}`);
+        }
+
+        const extraLines = Array.isArray(data.extraLines)
+            ? data.extraLines
+            : String(data.extraLines || "").split("\n");
+        extraLines.map(function (line) {
+            return String(line || "").trim();
+        }).filter(Boolean).forEach(function (line) {
+            lines.push(line);
+        });
+
+        lines.push("::");
+        return lines.join("\n");
+    }
+
+    /**
      * Parses extension snippet.
      */
     function parseExtensionSnippet(raw, id) {
@@ -1435,6 +1551,9 @@
         }
         if (/^```worldorbit\b/i.test(normalizedRaw.trim())) {
             return createExtensionItem(id, "worldorbit", normalizedRaw, parseWorldOrbitBlock(normalizedRaw));
+        }
+        if (/^::map\b/i.test(normalizedRaw.trim())) {
+            return createExtensionItem(id, "map", normalizedRaw, parseMapBlock(normalizedRaw));
         }
         if (/^::graph\b/i.test(normalizedRaw.trim())) {
             return createExtensionItem(id, "graph", normalizedRaw, parseGraphBlock(normalizedRaw));
@@ -1455,7 +1574,9 @@
         parseMermaidBlock,
         buildMermaidBlock,
         parseWorldOrbitBlock,
+        parseMapBlock,
         parseGraphBlock,
+        buildMapBlock,
         buildGraphBlock,
         buildExtensionSummary,
         buildExtensionMeta,

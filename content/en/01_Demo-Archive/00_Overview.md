@@ -1,12 +1,14 @@
 ---
 title: Demo Archive
-excerpt: Small public dataset for the WorldMesh Worldbuilder CMS.
+excerpt: A file-based Markdown system for worldbuilding and structured lore.
 translation_key: demo.archive
 ---
 
 # Demo Archive
 
-This demo archive shows a small, neutral public dataset for the file-based WorldMesh Worldbuilder CMS.
+LoreRoot is a file-based Markdown system for worldbuilding and structured lore.
+
+This demo archive shows a small, neutral public dataset for the public LoreRoot demo.
 
 - [Typed entries](./01_Typed_Entries/00_Overview.md)
 - [Media and embeds](./02_Media_and_Embeds.md)

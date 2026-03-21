@@ -805,6 +805,84 @@ final class GitWorkspace
     }
 
     /**
+     * Builds a compare payload for a file at a specific commit revision.
+     *
+     * @return array<string, mixed>
+     */
+    public function historyCompare(string $revision, string $projectPath = ''): array
+    {
+        if (!$this->isEnabled()) {
+            return $this->errorResult('Git-Integration ist deaktiviert.');
+        }
+
+        if (!$this->ensureRepository()) {
+            return $this->errorResult('Kein gueltiges Git-Repository gefunden.');
+        }
+
+        $revision = trim($revision);
+        $projectPath = $this->normalizePath($projectPath);
+        if ($revision === '' || $projectPath === '') {
+            return $this->errorResult('Revision und Dateipfad sind erforderlich.', null, $this->status());
+        }
+
+        $absolutePath = $this->resolvePath($projectPath);
+        $repoPath = $this->repoPathFromAbsolute($absolutePath);
+        if ($repoPath === '' || !$this->isManagedRepoPath($repoPath)) {
+            return $this->errorResult('Nur verwaltete Content-Dateien koennen verglichen werden.', null, $this->status());
+        }
+
+        $entry = $this->runGit(array('rev-list', '--parents', '-n', '1', $revision));
+        if (($entry['exitCode'] ?? 1) !== 0) {
+            return $this->errorResult('Die angeforderte Revision konnte nicht gelesen werden.', $entry, $this->status());
+        }
+
+        $revisionLine = trim((string) ($entry['stdout'] ?? ''));
+        $parts = preg_split('/\s+/', $revisionLine) ?: array();
+        $parentRevision = isset($parts[1]) ? trim((string) $parts[1]) : '';
+
+        $currentInfo = $this->readRevisionContent($revision, $repoPath);
+        $previousInfo = $parentRevision !== ''
+            ? $this->readRevisionContent($parentRevision, $repoPath)
+            : array('exists' => false, 'content' => '');
+
+        $patch = '';
+        if ($parentRevision !== '') {
+            $diff = $this->runGit(array(
+                'diff',
+                '--no-ext-diff',
+                '--unified=3',
+                $parentRevision,
+                $revision,
+                '--',
+                $repoPath,
+            ));
+            $patch = trim((string) ($diff['stdout'] ?? ''));
+        }
+
+        return array(
+            'ok' => true,
+            'compare' => array(
+                'revision' => $revision,
+                'previousRevision' => $parentRevision,
+                'path' => $projectPath,
+                'repoPath' => $repoPath,
+                'left' => array(
+                    'label' => $parentRevision !== '' ? substr($parentRevision, 0, 8) : 'before',
+                    'exists' => !empty($previousInfo['exists']),
+                    'content' => (string) ($previousInfo['content'] ?? ''),
+                ),
+                'right' => array(
+                    'label' => substr($revision, 0, 8),
+                    'exists' => !empty($currentInfo['exists']),
+                    'content' => (string) ($currentInfo['content'] ?? ''),
+                ),
+                'patch' => $patch,
+            ),
+            'status' => $this->status(),
+        );
+    }
+
+    /**
      * Restores a managed file from a specific revision into the working tree.
      *
      * @param callable|null $beforeWrite
@@ -1103,7 +1181,7 @@ final class GitWorkspace
             'allowRemoteSetup' => !array_key_exists('allowRemoteSetup', $config) || !empty($config['allowRemoteSetup']),
             'allowPull' => !array_key_exists('allowPull', $config) || !empty($config['allowPull']),
             'allowPush' => !array_key_exists('allowPush', $config) || !empty($config['allowPush']),
-            'authorName' => trim((string) ($config['authorName'] ?? 'WorldMesh CMS')),
+            'authorName' => trim((string) ($config['authorName'] ?? 'LoreRoot')),
             'authorEmail' => trim((string) ($config['authorEmail'] ?? 'cms@example.invalid')),
             'mergeSessionRoot' => $this->normalizePath((string) ($config['mergeSessionRoot'] ?? 'cache/admin-git-merge')),
         );
@@ -2568,9 +2646,9 @@ final class GitWorkspace
     private function runGitCommit(array $arguments): array
     {
         $environment = array(
-            'GIT_AUTHOR_NAME' => (string) ($this->config['authorName'] ?? 'WorldMesh CMS'),
+            'GIT_AUTHOR_NAME' => (string) ($this->config['authorName'] ?? 'LoreRoot'),
             'GIT_AUTHOR_EMAIL' => (string) ($this->config['authorEmail'] ?? 'cms@example.invalid'),
-            'GIT_COMMITTER_NAME' => (string) ($this->config['authorName'] ?? 'WorldMesh CMS'),
+            'GIT_COMMITTER_NAME' => (string) ($this->config['authorName'] ?? 'LoreRoot'),
             'GIT_COMMITTER_EMAIL' => (string) ($this->config['authorEmail'] ?? 'cms@example.invalid'),
         );
 

@@ -1,0 +1,26 @@
+title: Demo-Archivstation
+description: Beispielhafte Karten-Pins fuer die oeffentliche LoreRoot-Demo.
+layers:
+  - id: default
+    label: Station
+    visible: true
+    color: "#7ad7ff"
+  - id: notes
+    label: Hinweise
+    visible: true
+    color: "#f7b955"
+pins:
+  - id: docking-ring
+    label: Docking-Ring
+    layer: default
+    x: 0.53
+    y: 0.38
+    target: ./00_Uebersicht.md
+    description: Zentraler Zugangspunkt zum Demo-Archiv.
+  - id: observation-grid
+    label: Beobachtungsraster
+    layer: notes
+    x: 0.72
+    y: 0.58
+    target: ./99_Medien/01_Illustrationen/demo-observation-grid.svg
+    description: Zusaetzliche Medienreferenz aus dem Karten-Overlay.

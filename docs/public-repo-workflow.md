@@ -1,6 +1,6 @@
 # Public Repo Workflow
 
-Diese Doku beschreibt den empfohlenen Workflow, wenn dieses Repository als oeffentliches CMS-Repo mit Demo-Daten gepflegt wird, waehrend produktiver oder privater Content lokal erhalten bleibt.
+Diese Doku beschreibt den empfohlenen Workflow, wenn dieses Repository als oeffentliches LoreRoot-Repo mit Demo-Daten gepflegt wird, waehrend produktiver oder privater Content lokal erhalten bleibt.
 
 ## Zielbild
 
@@ -73,7 +73,7 @@ Wichtige Regeln:
 Sicherheitskopien vor einem groesseren Split:
 
 ```powershell
-git bundle create ..\worldmesh-pre-public.bundle --all
+git bundle create ..\loreroot-pre-public.bundle --all
 ```
 
 Danach:
@@ -110,13 +110,13 @@ Wichtig:
 Empfohlener Ablauf in einer separaten Rewrite-Kopie:
 
 ```powershell
-git bundle create ..\worldmesh-pre-public.bundle --all
-git clone --no-local . ..\worldmesh-public-rewrite
-Set-Location ..\worldmesh-public-rewrite
+git bundle create ..\loreroot-pre-public.bundle --all
+git clone --no-local . ..\loreroot-public-rewrite
+Set-Location ..\loreroot-public-rewrite
 
 git checkout --orphan public-main
 git add -A
-git commit -m "Initial public release of WorldMesh Worldbuilder CMS"
+git commit -m "Initial public release of LoreRoot"
 
 git tag -d v1.1 v1.2
 git tag -a v1.2 -m "Public release v1.2"

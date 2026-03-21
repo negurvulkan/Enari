@@ -2,9 +2,11 @@
 translation_key: site.home
 ---
 
-# WorldMesh Demo-Archiv
+# LoreRoot Demo-Archiv
 
-Willkommen im oeffentlichen Demo-Repository des WorldMesh Worldbuilder CMS.
+A file-based Markdown system for worldbuilding and structured lore.
+
+Willkommen im oeffentlichen Demo-Repository von LoreRoot.
 
 ## Einstieg
 

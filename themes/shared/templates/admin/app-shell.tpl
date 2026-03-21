@@ -32,9 +32,11 @@
                 <div>
                     <p class="admin-header__eyebrow">{$adminBrand} {$versionLabel}</p>
                     <h1 class="admin-header__title">{$title}</h1>
+                    <p class="admin-toolbar__meta">{$claim}</p>
                 </div>
             </div>
             <div class="admin-header__actions">
+                <button type="button" class="admin-button admin-button--primary" data-admin-new-entry>New entry</button>
                 <button type="button" class="admin-button admin-button--ghost" data-admin-refresh>Neu laden</button>
                 <button type="button" class="admin-button admin-button--ghost" data-admin-run-health>Health</button>
                 {if $hasCredentials}
@@ -69,20 +71,55 @@
                         <p class="admin-toolbar__meta" data-admin-current-meta>Waehle links eine Seite aus.</p>
                     </div>
                     <div class="admin-toolbar__actions">
+                        <button type="button" class="admin-button admin-button--ghost" data-admin-new-entry>New entry</button>
                         <button type="button" class="admin-button admin-button--ghost" data-admin-open-page disabled>Seite oeffnen</button>
                         <button type="button" class="admin-button admin-button--ghost" data-admin-clone disabled>Locale-Variante</button>
                         <button type="button" class="admin-button admin-button--primary" data-admin-save disabled>Speichern</button>
                     </div>
                 </section>
                 <nav class="admin-workspace-nav" data-admin-workspace-nav aria-label="Admin Arbeitsbereiche">
-                    <button type="button" class="admin-button admin-button--ghost is-active" id="admin-workspace-button-editor" data-admin-workspace-button="editor" aria-current="page">Editor</button>
+                    <button type="button" class="admin-button admin-button--ghost is-active" id="admin-workspace-button-library" data-admin-workspace-button="library" aria-current="page">Library</button>
+                    <button type="button" class="admin-button admin-button--ghost" id="admin-workspace-button-editor" data-admin-workspace-button="editor">Editor</button>
                     <button type="button" class="admin-button admin-button--ghost" id="admin-workspace-button-review" data-admin-workspace-button="review">Review</button>
                     <button type="button" class="admin-button admin-button--ghost" id="admin-workspace-button-media" data-admin-workspace-button="media">Medien</button>
                     <button type="button" class="admin-button admin-button--ghost" id="admin-workspace-button-git" data-admin-workspace-button="git">Git &amp; Publish</button>
                     <button type="button" class="admin-button admin-button--ghost" id="admin-workspace-button-health" data-admin-workspace-button="health">Health</button>
                 </nav>
                 <div class="admin-workspaces">
-                    <section class="admin-workspace" data-admin-workspace-panel="editor" aria-labelledby="admin-workspace-button-editor">
+                    <section class="admin-workspace" data-admin-workspace-panel="library" aria-labelledby="admin-workspace-button-library">
+                        <section class="admin-panel">
+                            <div class="admin-panel__header">
+                                <div>
+                                    <h3>Library</h3>
+                                    <p class="admin-document__meta" data-admin-library-summary>Dokumentkatalog wird geladen.</p>
+                                </div>
+                                <div class="admin-inline-actions">
+                                    <button type="button" class="admin-button admin-button--ghost admin-button--small" data-admin-library-refresh>Aktualisieren</button>
+                                    <button type="button" class="admin-button admin-button--ghost admin-button--small" data-admin-library-bulk disabled>Bulk edit</button>
+                                    <button type="button" class="admin-button admin-button--primary admin-button--small" data-admin-new-entry>New entry</button>
+                                </div>
+                            </div>
+                            <div class="admin-panel__body admin-panel__body--stack">
+                                <div class="admin-library-filters">
+                                    <label class="admin-field"><span>Suche</span><input type="search" placeholder="Titel, Pfad, Tags, translation_key" data-admin-library-query></label>
+                                    <label class="admin-field"><span>Locale</span><select data-admin-library-locale><option value="">Alle</option></select></label>
+                                    <label class="admin-field"><span>Typ</span><select data-admin-library-type><option value="">Alle</option></select></label>
+                                    <label class="admin-field"><span>Root</span><select data-admin-library-root><option value="">Alle</option></select></label>
+                                    <label class="admin-field"><span>Tag</span><select data-admin-library-tag><option value="">Alle</option></select></label>
+                                    <label class="admin-field"><span>Missing Locale</span><select data-admin-library-missing-locale><option value="">Alle</option></select></label>
+                                    <label class="admin-field"><span>Schema-Feld</span><select data-admin-library-schema-field><option value="">Keins</option></select></label>
+                                    <label class="admin-field"><span>Schema-Wert</span><input type="search" placeholder="enthaelt..." data-admin-library-schema-value></label>
+                                </div>
+                                <div class="admin-library-table-wrap">
+                                    <table class="admin-library-table" data-admin-library-table>
+                                        <thead data-admin-library-head></thead>
+                                        <tbody data-admin-library-body><tr><td>Keine Daten.</td></tr></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+                    </section>
+                    <section class="admin-workspace" data-admin-workspace-panel="editor" aria-labelledby="admin-workspace-button-editor" hidden>
                         <div class="admin-tablist" role="tablist" aria-label="Editor Bereiche" data-admin-tablist="editor">
                             <button type="button" class="admin-tab is-active" id="admin-tab-editor-markdown" role="tab" aria-selected="true" aria-controls="admin-tabpanel-editor-markdown" tabindex="0" data-admin-tab="editor:markdown">Markdown</button>
                             <button type="button" class="admin-tab" id="admin-tab-editor-metadata" role="tab" aria-selected="false" aria-controls="admin-tabpanel-editor-metadata" tabindex="-1" data-admin-tab="editor:metadata">Metadaten</button>
@@ -130,6 +167,7 @@
                                             <button type="button" class="admin-button admin-button--ghost admin-button--small" data-admin-insert-icon>Icon</button>
                                             <button type="button" class="admin-button admin-button--ghost admin-button--small" data-admin-insert-mermaid>Mermaid</button>
                                             <button type="button" class="admin-button admin-button--ghost admin-button--small" data-admin-insert-worldorbit>WorldOrbit</button>
+                                            <button type="button" class="admin-button admin-button--ghost admin-button--small" data-admin-insert-map>Map</button>
                                             <button type="button" class="admin-button admin-button--ghost admin-button--small" data-admin-insert-graph>Graph</button>
                                         </div>
                                     </div>

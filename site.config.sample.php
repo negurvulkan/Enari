@@ -26,7 +26,7 @@ return array(
                 'site' => array(
                     'lang' => 'en',
                     'brandEyebrow' => 'Public demo dataset',
-                    'defaultLead' => 'A small public demo archive for the WorldMesh Worldbuilder CMS.',
+                    'defaultLead' => 'A file-based Markdown system for worldbuilding and structured lore.',
                 ),
                 'ui' => array(
                     'tocTitle' => 'On this page',
@@ -97,12 +97,12 @@ return array(
     ),
     'admin' => array(
         'enabled' => true,
-        'title' => 'WorldMesh Admin Workspace',
+        'title' => 'LoreRoot Admin Workspace',
         'versionLabel' => 'v1.4',
         'username' => getenv('CMS_ADMIN_USERNAME') !== false ? (string) getenv('CMS_ADMIN_USERNAME') : 'admin',
         'password' => getenv('CMS_ADMIN_PASSWORD') !== false ? (string) getenv('CMS_ADMIN_PASSWORD') : '',
         'passwordHash' => getenv('CMS_ADMIN_PASSWORD_HASH') !== false ? (string) getenv('CMS_ADMIN_PASSWORD_HASH') : '',
-        'sessionCookie' => 'worldmesh-admin',
+        'sessionCookie' => 'loreroot-admin',
         'trustedLocalFallback' => true,
         'historyRoot' => 'cache/admin-history',
         'theme' => 'admin-atlas',
@@ -116,19 +116,19 @@ return array(
             'allowRemoteSetup' => true,
             'allowPull' => true,
             'allowPush' => true,
-            'authorName' => getenv('CMS_GIT_AUTHOR_NAME') !== false ? (string) getenv('CMS_GIT_AUTHOR_NAME') : 'WorldMesh CMS',
+            'authorName' => getenv('CMS_GIT_AUTHOR_NAME') !== false ? (string) getenv('CMS_GIT_AUTHOR_NAME') : 'LoreRoot CMS',
             'authorEmail' => getenv('CMS_GIT_AUTHOR_EMAIL') !== false ? (string) getenv('CMS_GIT_AUTHOR_EMAIL') : 'cms@example.invalid',
             'mergeSessionRoot' => 'cache/admin-git-merge',
         ),
     ),
     'site' => array(
-        'key' => 'worldmesh-public-demo',
+        'key' => 'loreroot-public-demo',
         'lang' => 'de',
-        'name' => 'WorldMesh Worldbuilder CMS',
+        'name' => 'LoreRoot',
         'brandEyebrow' => 'Markdown demo',
-        'brandTitle' => 'WorldMesh',
+        'brandTitle' => 'LoreRoot',
         'mastheadEyebrow' => 'Public example repository',
-        'defaultLead' => 'Kleines oeffentliches Demo-Archiv fuer das dateibasierte WorldMesh Worldbuilder CMS.',
+        'defaultLead' => 'A file-based Markdown system for worldbuilding and structured lore.',
     ),
     'homePage' => array(
         'source' => 'pages/startseite.md',
@@ -180,6 +180,14 @@ return array(
                 'maxZoom' => 2.8,
             ),
         ),
+        'maps' => array(
+            'enabled' => true,
+            'viewer' => array(
+                'defaultHeight' => '34rem',
+                'allowLayerToggle' => true,
+                'pinDetail' => true,
+            ),
+        ),
     ),
     'standalonePages' => array(
         array(
@@ -196,7 +204,7 @@ return array(
     'sidebarSections' => array(
     ),
     'footer' => array(
-        'text' => 'WorldMesh public demo repository',
+        'text' => 'LoreRoot public demo repository',
         'links' => array(
             array(
                 'page' => 'service/impressum',

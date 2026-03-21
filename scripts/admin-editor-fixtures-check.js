@@ -155,6 +155,30 @@ runTest("worldorbit block parse and roundtrip", () => {
     assert.equal(adapter.hydrateMarkdown(wrapped.visualMarkdown, wrapped.extensions), block);
 });
 
+runTest("map block parse and roundtrip", () => {
+    const block = normalize([
+        "::map",
+        "asset: ./99_Medien/01_Illustrationen/demo-archive-station.svg",
+        "title: Demo Archive Station",
+        "caption: Clickable pins are loaded from the image sidecar manifest.",
+        "height: 36rem",
+        "layers: default,notes",
+        "focus: relay-station",
+        "::",
+    ].join("\n"));
+
+    const parsed = adapter.parseMapBlock(block);
+    assert.equal(parsed.asset, "./99_Medien/01_Illustrationen/demo-archive-station.svg");
+    assert.equal(parsed.title, "Demo Archive Station");
+    assert.equal(parsed.caption, "Clickable pins are loaded from the image sidecar manifest.");
+    assert.equal(parsed.height, "36rem");
+    assert.deepEqual(parsed.layers, ["default", "notes"]);
+    assert.deepEqual(parsed.extraLines, ["focus: relay-station"]);
+
+    const rebuilt = adapter.buildMapBlock(parsed);
+    assert.equal(adapter.hydrateMarkdown(adapter.parseMarkdownExtensions(rebuilt).visualMarkdown, adapter.parseMarkdownExtensions(rebuilt).extensions), normalize(rebuilt));
+});
+
 runTest("unknown directive block stays raw", () => {
     const block = normalize([
         "::note",
@@ -197,13 +221,18 @@ runTest("mixed document roundtrip preserves extension order", () => {
         "depth: 1",
         "layout: cose",
         "::",
+        "",
+        "::map",
+        "asset: ./99_Medien/01_Illustrationen/demo-archive-station.svg",
+        "title: Demo Archive Station",
+        "::",
     ].join("\n"));
 
     const parsed = adapter.parseMarkdownExtensions(markdown);
-    assert.equal(parsed.extensions.length, 4);
+    assert.equal(parsed.extensions.length, 5);
     assert.deepEqual(
         parsed.extensions.map((item) => item.type),
-        ["embed", "mermaid", "worldorbit", "graph"]
+        ["embed", "mermaid", "worldorbit", "graph", "map"]
     );
     assert.equal(adapter.hydrateMarkdown(parsed.visualMarkdown, parsed.extensions), markdown);
 });

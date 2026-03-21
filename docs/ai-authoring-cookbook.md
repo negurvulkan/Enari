@@ -1,6 +1,6 @@
 # AI Authoring Cookbook
 
-This document provides short recipes for common AI-assisted tasks in the WorldMesh Worldbuilder CMS. Rules live in `AGENTS.md`; this file shows practical patterns.
+This document provides short recipes for common AI-assisted tasks in LoreRoot. Rules live in `AGENTS.md`; this file shows practical patterns.
 
 ## 1. Create a Bilingual Overview Page
 
@@ -319,7 +319,27 @@ Checklist:
 - choose WorldOrbit for spatial atlas content, not for simple explanatory diagrams
 - run `php scripts/release-check.php --strict`
 
-## 14. Add a Manual or Mixed Cytoscape Graph
+## 14. Add an Image Map With Sidecar Pins
+
+```md
+::map
+asset: ./99_Medien/01_Illustrationen/demo-archive-station.svg
+title: Demo Archive Station
+caption: Clickable pins are loaded from the image sidecar manifest.
+height: 34rem
+layers: default,notes
+::
+```
+
+Checklist:
+
+- use `::map` for image-based maps, not `::graph` or raw HTML overlays
+- keep the asset path relative when the image lives nearby in the same locale tree
+- manage pins and layers through the Media workspace so the sidecar stays next to the image
+- use CMS links, media targets, or external URLs for pin destinations
+- run `php scripts/release-check.php --strict`
+
+## 15. Add a Manual or Mixed Cytoscape Graph
 
 ```md
 ::graph

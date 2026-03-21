@@ -9,5 +9,5 @@
   <path d="M 180 210 H 540" stroke="#7fdcff" stroke-width="6"/>
   <path d="M 360 70 V 350" stroke="#2b7ea5" stroke-width="4" stroke-dasharray="10 10"/>
   <text x="44" y="58" fill="#edf6fb" font-family="Segoe UI, Arial, sans-serif" font-size="28">Archive Station</text>
-  <text x="44" y="92" fill="#9ab6c5" font-family="Segoe UI, Arial, sans-serif" font-size="18">Neutral illustration for the public WorldMesh demo</text>
+  <text x="44" y="92" fill="#9ab6c5" font-family="Segoe UI, Arial, sans-serif" font-size="18">Neutral illustration for the public LoreRoot demo</text>
 </svg>

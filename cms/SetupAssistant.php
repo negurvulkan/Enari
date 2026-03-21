@@ -112,7 +112,7 @@ final class SetupAssistant
         $defaultLocale = trim((string) ($sample['i18n']['defaultLocale'] ?? 'de'));
 
         return array(
-            'siteName' => trim((string) ($sample['site']['name'] ?? 'WorldMesh Worldbuilder CMS')),
+            'siteName' => trim((string) ($sample['site']['name'] ?? 'LoreRoot')),
             'siteLead' => trim((string) ($sample['site']['defaultLead'] ?? '')),
             'defaultLocale' => $defaultLocale !== '' ? $defaultLocale : 'de',
             'adminUsername' => trim((string) ($sample['admin']['username'] ?? 'admin')),
@@ -197,7 +197,7 @@ final class SetupAssistant
         $localeDefaults = $this->localeCopyDefaults($defaultLocale);
         $siteKey = $this->slugify($siteName);
         if ($siteKey === '') {
-            $siteKey = 'worldmesh-site';
+            $siteKey = 'loreroot-site';
         }
 
         if (!is_array($config['site'] ?? null)) {
@@ -405,15 +405,15 @@ final class SetupAssistant
             return;
         }
 
-        session_name('worldmesh-setup');
+        session_name('loreroot-setup');
         session_start();
 
-        if (!isset($_SESSION['worldmesh_setup']) || !is_array($_SESSION['worldmesh_setup'])) {
-            $_SESSION['worldmesh_setup'] = array();
+        if (!isset($_SESSION['loreroot_setup']) || !is_array($_SESSION['loreroot_setup'])) {
+            $_SESSION['loreroot_setup'] = array();
         }
 
-        if (empty($_SESSION['worldmesh_setup']['csrf']) || !is_string($_SESSION['worldmesh_setup']['csrf'])) {
-            $_SESSION['worldmesh_setup']['csrf'] = bin2hex(random_bytes(24));
+        if (empty($_SESSION['loreroot_setup']['csrf']) || !is_string($_SESSION['loreroot_setup']['csrf'])) {
+            $_SESSION['loreroot_setup']['csrf'] = bin2hex(random_bytes(24));
         }
     }
 
@@ -422,7 +422,7 @@ final class SetupAssistant
      */
     private function csrfToken(): string
     {
-        $state = is_array($_SESSION['worldmesh_setup'] ?? null) ? $_SESSION['worldmesh_setup'] : array();
+        $state = is_array($_SESSION['loreroot_setup'] ?? null) ? $_SESSION['loreroot_setup'] : array();
         return (string) ($state['csrf'] ?? '');
     }
 
@@ -556,7 +556,7 @@ final class SetupAssistant
             : '';
 
         echo '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
-        echo '<title>WorldMesh Setup-Assistent</title>';
+        echo '<title>LoreRoot Setup Assistant</title>';
         echo '<style>'
             . 'body{margin:0;background:radial-gradient(circle at top,#18304a,#09131d 58%);color:#edf3f7;font-family:Segoe UI,Arial,sans-serif;}'
             . '.setup-shell{min-height:100vh;padding:clamp(18px,4vw,48px);}'
@@ -586,7 +586,8 @@ final class SetupAssistant
             . '@media (max-width:900px){.setup-grid{grid-template-columns:1fr;}.field-row{grid-template-columns:1fr;}}'
             . '</style></head><body><main class="setup-shell"><section class="setup-grid">';
 
-        echo '<section class="panel"><p class="eyebrow">WorldMesh Setup</p><h1>CMS auf diesem Webspace einrichten</h1>';
+        echo '<section class="panel"><p class="eyebrow">LoreRoot Setup</p><h1>CMS auf diesem Webspace einrichten</h1>';
+        echo '<p class="muted">A file-based Markdown system for worldbuilding and structured lore.</p>';
         echo '<p>Diese Instanz wurde frisch hochgeladen und hat noch keine <code>site.config.php</code>. '
             . 'Der Assistent legt jetzt die lokale Laufzeit-Konfiguration an, haertet den Admin-Zugang und richtet die Runtime fuer den ersten Login ein.</p>';
         echo $reportHtml;
@@ -599,7 +600,7 @@ final class SetupAssistant
             . '<small>Wird fuer Branding, Footer und den Titel des Admin-Workspace verwendet.</small></div>';
         echo '<div class="field"><label for="site_lead">Einleitungstext</label>'
             . '<textarea id="site_lead" name="site_lead" placeholder="Optionaler Willkommenstext fuer die Startseite.">' . $this->e((string) ($state['siteLead'] ?? '')) . '</textarea>'
-            . '<small>Optional. Wenn du das Feld leer laesst, verwendet WorldMesh einen neutralen Standardtext.</small></div>';
+            . '<small>Optional. Wenn du das Feld leer laesst, verwendet LoreRoot den Claim als neutralen Standardtext.</small></div>';
         echo '<div class="field-row">';
         echo '<div class="field"><label for="default_locale">Standardsprache</label><select id="default_locale" name="default_locale">'
             . implode('', $localeOptions) . '</select></div>';
