@@ -4669,8 +4669,8 @@ final class ContentRepository
             $variants[$part] = $part;
         }
 
-        foreach (array_keys($variants) as $token) {
-            foreach ($this->buildSingularGraphTokens($token) as $variant) {
+        foreach (array_values($variants) as $token) {
+            foreach ($this->buildSingularGraphTokens((string) $token) as $variant) {
                 $variants[$variant] = $variant;
             }
         }
